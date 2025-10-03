@@ -1,126 +1,95 @@
-// server.js
+// server.js (ES module version)
 import express from "express";
-import bodyParser from "body-parser";
 import PDFDocument from "pdfkit";
+import path from "path";
 import fs from "fs";
 import OpenAI from "openai";
-import path from "path";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const port = 3001;
 
-app.use(bodyParser.json());
-app.use(express.static("public"));
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// ✅ Initialize OpenAI client
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+// OpenAI setup (optional)
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || "dummy-key",
 });
 
-// Currency symbol setting (change as needed: "$", "£", "€", "₹")
-const currencySymbol = "£";
-
-// ✅ Helper: Generate HS code for a product
-async function getHSCode(description) {
-  try {
-    const completion = await client.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are an expert in international trade. Provide only the HS code for the given product.",
-        },
-        { role: "user", content: `Product: ${description}` },
-      ],
-    });
-
-    return completion.choices[0].message.content.trim();
-  } catch (error) {
-    console.error("HS Code error:", error);
-    return "N/A";
-  }
-}
-
-// ✅ Endpoint: Generate Invoice PDF
+// Generate Invoice PDF
 app.post("/generate-invoice", async (req, res) => {
-  const { seller, buyer, items } = req.body;
-
-  if (!seller || !buyer || !items || !Array.isArray(items)) {
-    return res.status(400).send("Invalid request body.");
+  console.log("Received request:", req.body);
+  const { sellerName, buyerName, items } = req.body;
+  
+  if (!items || !Array.isArray(items)) {
+    return res.status(400).send("Items array is required");
   }
+  
+  const itemsArr = items;
 
-  try {
-    // Create a new PDF
-    const doc = new PDFDocument();
-    const filePath = `invoice_${Date.now()}.pdf`;
-    const stream = fs.createWriteStream(filePath);
-    doc.pipe(stream);
-
-    // Add Logo (optional)
+  // Assign HS codes (fallback: "123456")
+  for (let item of itemsArr) {
     try {
-      doc.image("logo.png", 50, 45, { width: 80 });
-    } catch (e) {
-      console.warn("⚠️ Logo not found, skipping...");
-    }
-
-    // Title
-    doc.fontSize(20).text("Commercial Invoice", { align: "center" });
-    doc.moveDown();
-
-    // Seller & Buyer info
-    doc.fontSize(12).text(`Seller: ${seller}`);
-    doc.text(`Buyer: ${buyer}`);
-    doc.moveDown();
-
-    // Table Header
-    doc.fontSize(12).text("Items:", { underline: true });
-    doc.moveDown();
-
-    let grandTotal = 0;
-
-    for (const item of items) {
-      const { description, qty, unitPrice } = item;
-      const total = qty * unitPrice;
-      grandTotal += total;
-
-      // Fetch HS Code
-      const hsCode = await getHSCode(description);
-
-      doc.text(
-        `${description} — Qty: ${qty} — Unit: ${currencySymbol}${unitPrice.toFixed(
-          2
-        )} — Total: ${currencySymbol}${total.toFixed(2)} — HS Code: ${hsCode}`
-      );
-    }
-
-    doc.moveDown();
-    doc.fontSize(14).text(`Grand Total: ${currencySymbol}${grandTotal.toFixed(2)}`, {
-      bold: true,
-    });
-
-    doc.end();
-
-    stream.on("finish", () => {
-      res.download(filePath, () => {
-        fs.unlinkSync(filePath); // delete after sending
+      // You can uncomment this block to use real OpenAI API
+      /*
+      const prompt = `Suggest the correct HS (Harmonized System) code for this product: "${item.description}". Only give me the 6-digit code.`;
+      const response = await openai.chat.completions.create({
+        model: "gpt-4",
+        messages: [{ role: "user", content: prompt }],
       });
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error generating invoice.");
+      item.hsCode = response.choices[0].message.content.trim();
+      */
+      item.hsCode = "123456"; // fallback code
+    } catch {
+      item.hsCode = "N/A";
+    }
   }
+
+  // Create PDF
+  const doc = new PDFDocument({ margin: 50 });
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", "attachment; filename=invoice.pdf");
+  doc.pipe(res);
+
+  // Add company logo if exists
+  const logoPath = path.join(__dirname, "logo.png");
+  if (fs.existsSync(logoPath)) {
+    doc.image(logoPath, 50, 20, { width: 100 });
+  }
+
+  // Title and seller/buyer info
+  doc.fontSize(20).text("Commercial Invoice", { align: "center" });
+  doc.moveDown();
+  doc.fontSize(12).text(`Seller: ${sellerName}`);
+  doc.text(`Buyer: ${buyerName}`);
+  doc.moveDown();
+  doc.text("Items:", { underline: true });
+
+  // Items table
+  let total = 0;
+  itemsArr.forEach((it, i) => {
+    const qty = Number(it.qty || 0);
+    const unit = Number(it.unitPrice || 0);
+    const lineTotal = qty * unit;
+    total += lineTotal;
+
+    doc.text(
+      `${i + 1}. ${it.description} — Qty: ${qty} — Unit: $${unit.toFixed(
+        2
+      )} — Total: $${lineTotal.toFixed(2)} — HS Code: ${it.hsCode}`
+    );
+  });
+
+  doc.moveDown();
+  doc.fontSize(14).text(`Grand Total: $${total.toFixed(2)}`, { align: "right" });
+
+  doc.end();
 });
 
-// ✅ Serve the HTML form
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
-app.listen(port, "0.0.0.0", () => {
-  console.log(`🚀 Server running on port ${port}`);
-});
+// Start server
+const PORT = 3001;
+app.listen(PORT, "0.0.0.0", () => console.log(`🚀 Backend server running on port ${PORT}`));

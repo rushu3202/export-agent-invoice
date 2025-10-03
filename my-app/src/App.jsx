@@ -1,100 +1,137 @@
 import { useState } from "react";
+import "./App.css";
 
-export default function InvoiceGenerator() {
-  const [mode, setMode] = useState("text"); // "text" or "json"
-  const [textInvoice, setTextInvoice] = useState("");
-  const [seller, setSeller] = useState("");
-  const [buyer, setBuyer] = useState("");
-  const [itemsJson, setItemsJson] = useState(
-    '[{"description":"Widget A","qty":2,"unitPrice":10}]'
+function App() {
+  const [mode, setMode] = useState("json"); // 'json' or 'text'
+  const [sellerName, setSellerName] = useState("ACME Exporters");
+  const [buyerName, setBuyerName] = useState("Global Import Ltd");
+  const [itemsJSON, setItemsJSON] = useState(
+    '[{"description":"Widget A","qty":2,"unitPrice":10},{"description":"Widget B","qty":1,"unitPrice":25}]'
   );
+  const [plainText, setPlainText] = useState("");
 
-  const generateInvoice = async () => {
-    let body;
+  const generatePDF = async () => {
+    let items = [];
 
-    if (mode === "text") {
-      body = { textInvoice };
-    } else {
-      body = {
-        seller,
-        buyer,
-        items: JSON.parse(itemsJson),
-      };
-    }
-    const response = await fetch("/generate-invoice", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+    if (mode === "json") {
+      try {
+        items = JSON.parse(itemsJSON);
+      } catch (err) {
+        alert("Invalid JSON");
+        return;
       }
-    );
+    } else {
+      // Parse plain text into items
+      // Example input format:
+      // 1. Widget A — Qty: 2 — Unit: 10
+      const lines = plainText.split("\n").filter((line) => line.trim() !== "");
+      for (let line of lines) {
+        const match = line.match(/(.*)— Qty: (\d+) — Unit: (\d+\.?\d*)/);
+        if (match) {
+          items.push({
+            description: match[1].trim(),
+            qty: Number(match[2]),
+            unitPrice: Number(match[3]),
+          });
+        }
+      }
+    }
 
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "invoice.pdf";
-    a.click();
+    // Send request to backend
+    try {
+      const response = await fetch("/generate-invoice", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ sellerName, buyerName, items }),
+      });
+
+      if (!response.ok) {
+        alert("Failed to generate PDF");
+        return;
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "invoice.pdf";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (err) {
+      console.error(err);
+      alert("Error generating PDF");
+    }
   };
 
   return (
-    <div className="p-6 max-w-xl mx-auto bg-white shadow-lg rounded-xl">
-      <h1 className="text-2xl font-bold mb-4">AI Invoice Generator</h1>
+    <div className="App">
+      <h1>AI Invoice Generator</h1>
 
-      <div className="flex gap-4 mb-4">
-        <button
-          className={`px-4 py-2 rounded ${
-            mode === "text" ? "bg-blue-600 text-white" : "bg-gray-200"
-          }`}
-          onClick={() => setMode("text")}
-        >
-          Option 1: Plain Text
-        </button>
-        <button
-          className={`px-4 py-2 rounded ${
-            mode === "json" ? "bg-blue-600 text-white" : "bg-gray-200"
-          }`}
-          onClick={() => setMode("json")}
-        >
-          Option 2: JSON
-        </button>
+      <div>
+        <label>
+          <input
+            type="radio"
+            value="json"
+            checked={mode === "json"}
+            onChange={() => setMode("json")}
+          />
+          JSON Input
+        </label>
+        <label style={{ marginLeft: "20px" }}>
+          <input
+            type="radio"
+            value="text"
+            checked={mode === "text"}
+            onChange={() => setMode("text")}
+          />
+          Plain Text Input
+        </label>
       </div>
 
-      {mode === "text" ? (
-        <textarea
-          className="w-full h-48 border p-2 rounded mb-4"
-          value={textInvoice}
-          onChange={(e) => setTextInvoice(e.target.value)}
-          placeholder={`Commercial Invoice\nSeller: ACME Exporters\nBuyer: Global Import Ltd\nItems:\n1. Widget A — Qty: 2 — Unit: 10.00 — Total: 20.00\n2. Widget B — Qty: 1 — Unit: 25.00 — Total: 25.00\nGrand Total: 45.0`}
+      <div style={{ marginTop: "20px" }}>
+        <input
+          type="text"
+          placeholder="Seller name"
+          value={sellerName}
+          onChange={(e) => setSellerName(e.target.value)}
         />
-      ) : (
-        <div>
-          <input
-            className="w-full border p-2 rounded mb-2"
-            value={seller}
-            onChange={(e) => setSeller(e.target.value)}
-            placeholder="Seller name"
-          />
-          <input
-            className="w-full border p-2 rounded mb-2"
-            value={buyer}
-            onChange={(e) => setBuyer(e.target.value)}
-            placeholder="Buyer name"
-          />
-          <textarea
-            className="w-full h-32 border p-2 rounded"
-            value={itemsJson}
-            onChange={(e) => setItemsJson(e.target.value)}
-            placeholder='[{"description":"Widget A","qty":2,"unitPrice":10}]'
-          />
-        </div>
-      )}
+      </div>
+      <div style={{ marginTop: "10px" }}>
+        <input
+          type="text"
+          placeholder="Buyer name"
+          value={buyerName}
+          onChange={(e) => setBuyerName(e.target.value)}
+        />
+      </div>
 
-      <button
-        onClick={generateInvoice}
-        className="mt-4 w-full bg-green-600 text-white font-bold py-2 rounded"
-      >
-        Generate Invoice PDF
+      <div style={{ marginTop: "20px" }}>
+        {mode === "json" ? (
+          <textarea
+            rows={6}
+            cols={50}
+            value={itemsJSON}
+            onChange={(e) => setItemsJSON(e.target.value)}
+          />
+        ) : (
+          <textarea
+            rows={6}
+            cols={50}
+            placeholder="1. Widget A — Qty: 2 — Unit: 10"
+            value={plainText}
+            onChange={(e) => setPlainText(e.target.value)}
+          />
+        )}
+      </div>
+
+      <button style={{ marginTop: "20px" }} onClick={generatePDF}>
+        Generate PDF
       </button>
     </div>
   );
 }
+
+export default App;
