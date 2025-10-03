@@ -1,44 +1,99 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>Invoice Generator</title>
+  <meta charset="UTF-8">
+  <title>AI Invoice Generator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      background: #f7f7f7;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    textarea, input {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    .container {
+      max-width: 700px;
+      margin: auto;
+      background: white;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+  </style>
 </head>
 <body>
-  <h1>Invoice Generator</h1>
-  <form id="invoiceForm">
-    <label>Seller: <input name="sellerName" value="ACME Exporters"></label><br><br>
-    <label>Buyer: <input name="buyerName" value="Global Import Ltd"></label><br><br>
-    <label>Items (JSON):<br>
-      <textarea name="items" rows="6" cols="60">[{"description":"Widget A","qty":2,"unitPrice":10},{"description":"Widget B","qty":1,"unitPrice":25}]</textarea>
-    </label><br><br>
-    <button type="submit">Generate Invoice PDF</button>
-  </form>
+  <div class="container">
+    <h1>AI Invoice Generator</h1>
+
+    <p><strong>Option 1:</strong> Paste a plain text invoice</p>
+    <textarea id="textInvoice" rows="8" placeholder="Commercial Invoice
+Seller: ACME Exporters
+Buyer: Global Import Ltd
+Items:
+1. Widget A — Qty: 2 — Unit: 10.00 — Total: 20.00
+2. Widget B — Qty: 1 — Unit: 25.00 — Total: 25.00
+Grand Total: 45.0"></textarea>
+
+    <p><strong>Option 2:</strong> Enter details manually (JSON)</p>
+    <input type="text" id="sellerName" placeholder="Seller name (e.g., ACME Exporters)">
+    <input type="text" id="buyerName" placeholder="Buyer name (e.g., Global Import Ltd)">
+    <textarea id="items" rows="5" placeholder='[{"description":"Widget A","qty":2,"unitPrice":10}]'></textarea>
+
+    <button onclick="generateInvoice()">Generate Invoice PDF</button>
+  </div>
 
   <script>
-    document.getElementById('invoiceForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const form = e.target;
-      const data = {
-        sellerName: form.sellerName.value,
-        buyerName: form.buyerName.value,
-        items: form.items.value
-      };
-      const res = await fetch('/generate-invoice', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+    async function generateInvoice() {
+      const textInvoice = document.getElementById("textInvoice").value.trim();
+      const sellerName = document.getElementById("sellerName").value.trim();
+      const buyerName = document.getElementById("buyerName").value.trim();
+      const items = document.getElementById("items").value.trim();
+
+      const body = { textInvoice, sellerName, buyerName, items };
+
+      const res = await fetch("/generate-invoice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
       });
+
+      if (!res.ok) {
+        alert("Failed to generate invoice.");
+        return;
+      }
+
+      // Force download
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
-      a.download = 'invoice.pdf';
+      a.download = "invoice.pdf";
       document.body.appendChild(a);
       a.click();
       a.remove();
-      window.URL.revokeObjectURL(url);
-    });
+    }
   </script>
 </body>
 </html>
