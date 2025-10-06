@@ -5,6 +5,7 @@ import InvoiceGenerator from './pages/InvoiceGenerator';
 import ExportForms from './pages/ExportForms';
 import AIChatAssistant from './pages/AIChatAssistant';
 import ShipmentTracker from './pages/ShipmentTracker';
+import ProfileBilling from './pages/ProfileBilling';
 import './App.css';
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
           <Route path="export-forms" element={<ExportForms />} />
           <Route path="chat" element={<AIChatAssistant />} />
           <Route path="shipment" element={<ShipmentTracker />} />
+          <Route path="profile" element={<ProfileBilling />} />
         </Route>
       </Routes>
     </BrowserRouter>

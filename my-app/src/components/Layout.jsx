@@ -1,16 +1,20 @@
-import { NavLink, Outlet } from 'react-router-dom';
-import { Home, FileText, ClipboardList, MessageSquare, Package, Menu, X } from 'lucide-react';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Home, FileText, ClipboardList, MessageSquare, Package, Menu, X, User } from 'lucide-react';
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const location = useLocation();
+  
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home },
     { name: 'Invoice Generator', href: '/invoice', icon: FileText },
     { name: 'Export Forms', href: '/export-forms', icon: ClipboardList },
     { name: 'AI Chat Assistant', href: '/chat', icon: MessageSquare },
     { name: 'Shipment Tracker', href: '/shipment', icon: Package },
+    { name: 'Profile & Billing', href: '/profile', icon: User },
   ];
 
   return (
@@ -55,8 +59,11 @@ export default function Layout() {
             </nav>
 
             <div className="p-4 border-t border-blue-500">
-              <p className="text-blue-200 text-xs">
-                Powered by AI · v1.0
+              <p className="text-blue-200 text-xs text-center">
+                © 2025 Export AI Agent
+              </p>
+              <p className="text-blue-300 text-xs text-center mt-1">
+                Built with ❤️ by Rushaleeben Patel
               </p>
             </div>
           </div>
@@ -70,7 +77,17 @@ export default function Layout() {
         )}
 
         <main className="flex-1 p-4 lg:p-8">
-          <Outlet />
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Outlet />
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
     </div>

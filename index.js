@@ -80,6 +80,124 @@ app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
+// POST /analyze-invoice - AI-powered HS code and duty intelligence
+app.post("/analyze-invoice", async (req, res) => {
+  try {
+    const { items, origin, destination } = req.body;
+    
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: "Items array is required" });
+    }
+
+    const analyzedItems = [];
+
+    if (!openai) {
+      // Fallback to mock data when OpenAI is not available
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        analyzedItems.push({
+          description: item.description || `Item ${i + 1}`,
+          hsCode: "000000",
+          estimatedDuty: "5-10%",
+          category: "General Goods",
+          notes: "HS code and duty estimates require AI configuration"
+        });
+      }
+
+      return res.json({
+        analyzedItems,
+        summary: "AI analysis unavailable. Using fallback HS codes. Please configure OPENAI_API_KEY for accurate analysis.",
+        totalEstimatedDuty: "Variable",
+        freightEstimate: "Contact carrier",
+        insuranceEstimate: "0.5% of invoice value"
+      });
+    }
+
+    // Use AI to analyze each item
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const description = item.description || `Item ${i + 1}`;
+
+      try {
+        const prompt = `Analyze this export item and provide:
+1. 6-digit HS code
+2. Estimated import duty percentage
+3. Product category
+
+Item: "${description}"
+Origin: ${origin || 'India'}
+Destination: ${destination || 'USA'}
+
+Format: HS_CODE | DUTY_% | CATEGORY`;
+
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [
+            {
+              role: "system",
+              content: "You are an expert in international trade and HS code classification. Provide accurate HS codes and duty estimates for export items."
+            },
+            { role: "user", content: prompt }
+          ],
+          max_tokens: 100,
+        });
+
+        const response = completion.choices[0].message.content.trim();
+        const parts = response.split('|').map(p => p.trim());
+
+        analyzedItems.push({
+          description,
+          hsCode: parts[0] || "000000",
+          estimatedDuty: parts[1] || "5-10%",
+          category: parts[2] || "General Goods",
+          notes: "AI-generated estimate"
+        });
+      } catch (err) {
+        console.error(`Error analyzing item ${i}:`, err);
+        analyzedItems.push({
+          description,
+          hsCode: "000000",
+          estimatedDuty: "5-10%",
+          category: "General Goods",
+          notes: "Analysis failed"
+        });
+      }
+    }
+
+    // Generate export declaration summary
+    const summaryPrompt = `Generate a brief export declaration summary for shipment from ${origin || 'India'} to ${destination || 'USA'} containing ${items.length} items. Include key compliance notes.`;
+
+    let summary = "Standard export declaration applies. Ensure all documentation is complete.";
+    try {
+      const summaryCompletion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: "You are an export compliance expert. Provide concise export declaration summaries."
+          },
+          { role: "user", content: summaryPrompt }
+        ],
+        max_tokens: 150,
+      });
+      summary = summaryCompletion.choices[0].message.content.trim();
+    } catch (err) {
+      console.error("Error generating summary:", err);
+    }
+
+    res.json({
+      analyzedItems,
+      summary,
+      totalEstimatedDuty: "5-15% (varies by item)",
+      freightEstimate: "Contact carrier for quote",
+      insuranceEstimate: "0.5-1% of invoice value"
+    });
+  } catch (err) {
+    console.error("Analyze invoice error:", err);
+    res.status(500).json({ error: "Failed to analyze invoice" });
+  }
+});
+
 // POST /generate-invoice
 app.post("/generate-invoice", async (req, res) => {
   try {
