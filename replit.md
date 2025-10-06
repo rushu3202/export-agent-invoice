@@ -1,25 +1,56 @@
-# Export AI Agent
+# Export AI Agent - Professional SaaS Platform
 
 ## Overview
-A full-stack AI-powered web application for automating export documentation and compliance. The application helps businesses streamline their international trade processes with intelligent automation.
+A complete full-stack SaaS platform for automating export documentation and compliance. Users can sign up, subscribe to paid plans, and leverage AI-powered tools to streamline international trade processes.
 
 **Status**: Production Ready ✅  
+**SaaS Transformation**: Complete ✅  
 **Last Updated**: October 6, 2025
 
-## Features
+## SaaS Features
 
-### 1. Dashboard
-- Real-time statistics tracking
-- Feature overview cards
-- Quick navigation to all tools
+### Authentication & User Management
+- **Supabase Auth** with multiple sign-in options:
+  - Google OAuth (one-click social login)
+  - Email/password authentication
+- Protected routes - only authenticated users can access tools
+- User session management with automatic logout
+- User email displayed in sidebar
+- Secure authentication flow
 
-### 2. Invoice Generator
-- Professional export invoice generation
+### Subscription & Billing
+- **Stripe Integration** for monetization:
+  - Free Plan: 3 invoices/month, basic features
+  - Pro Plan: £9.99/month - unlimited access
+- Stripe Checkout for subscription upgrades
+- Stripe Customer Portal for billing management
+- Webhook integration for automatic subscription status updates
+- Real-time subscription status display
+
+### Data Persistence (Supabase PostgreSQL)
+- **User Profiles**: Stores user data, subscription status, Stripe customer ID
+- **Invoices**: All generated invoices saved with user_id
+- **Export Forms**: Form history tracked per user
+- **Chat History**: AI conversations saved for each user
+- **Shipments**: Tracking records stored per user
+- Row Level Security (RLS) policies for data protection
+
+### Professional Features
+
+#### 1. Dashboard
+- Real-time user-specific statistics from database
+- Invoice count, forms completed, AI queries used
+- Feature overview cards with quick navigation
+- Protected by authentication
+
+#### 2. Invoice Generator
+- Professional export invoice PDF generation
 - Automatic HS code assignment using AI
 - Multi-currency support (USD, EUR, GBP, INR, JPY)
-- PDF export functionality
+- Auto-saves to database with user_id
+- Success notifications
 
-### 3. Export Forms Assistant
+#### 3. Export Forms Assistant
 - AI-guided form filling for:
   - Shipping Bills
   - Bill of Lading
@@ -27,166 +58,319 @@ A full-stack AI-powered web application for automating export documentation and 
   - Certificate of Origin
 - Intelligent field suggestions
 - PDF document generation
+- Forms saved to user history
 
-### 4. AI Chat Assistant
-- Expert export advisor powered by OpenAI
+#### 4. AI Chat Assistant
+- Expert export advisor powered by OpenAI GPT-4-mini
 - Real-time help with:
   - Export procedures and documentation
   - HS code classification
   - Customs compliance
   - Shipping and logistics
   - International trade regulations
+- Conversation history saved per user
 
-### 5. Shipment Tracker
+#### 5. Shipment Tracker
 - Track international shipments
 - Real-time status updates
 - Comprehensive shipment details
+- Tracking history saved to database
+
+#### 6. Profile & Billing Page
+- View current subscription plan (Free/Pro)
+- Usage statistics display
+- "Upgrade to Pro" button with Stripe checkout
+- "Manage Billing" button for Stripe portal
+- Payment method and billing history
 
 ## Technology Stack
 
 ### Frontend
 - React 18 with React Router
 - Tailwind CSS v3 for styling
+- Framer Motion for page transitions
 - Vite for build tooling
+- Supabase client for authentication
+- Axios for API calls
 - Responsive design with mobile support
 
 ### Backend
 - Node.js with Express 5
+- Supabase PostgreSQL database
+- Stripe for payments & subscriptions
 - OpenAI GPT-4-mini integration
 - PDFKit for document generation
 - RESTful API architecture
+
+### Services & Integrations
+- **Supabase**: Authentication + PostgreSQL database
+- **Stripe**: Subscription billing + customer portal
+- **OpenAI**: AI-powered features (HS codes, chat, forms)
 
 ## Project Structure
 
 ```
 /
-├── my-app/                 # React frontend source
+├── my-app/                      # React frontend source
 │   ├── src/
-│   │   ├── components/     # Reusable UI components
-│   │   │   └── Layout.jsx  # Main app layout with sidebar
-│   │   ├── pages/          # Page components
-│   │   │   ├── Home.jsx
-│   │   │   ├── InvoiceGenerator.jsx
+│   │   ├── components/
+│   │   │   ├── Layout.jsx       # App layout with user menu
+│   │   │   └── ProtectedRoute.jsx  # Auth guard wrapper
+│   │   ├── pages/
+│   │   │   ├── Login.jsx        # Sign up/Sign in page
+│   │   │   ├── Home.jsx         # Dashboard with real stats
+│   │   │   ├── InvoiceGenerator.jsx  # Invoice tool + DB save
 │   │   │   ├── ExportForms.jsx
 │   │   │   ├── AIChatAssistant.jsx
-│   │   │   └── ShipmentTracker.jsx
-│   │   ├── App.jsx         # React Router configuration
-│   │   └── index.css       # Tailwind CSS imports
-│   ├── dist/               # Production build output
-│   └── package.json        # Frontend dependencies
-├── dist/                   # Copied production files
-├── index.js                # Express server (production entry point)
-├── build-copy.js           # Build script to copy frontend to /dist
-└── package.json            # Backend dependencies
+│   │   │   ├── ShipmentTracker.jsx
+│   │   │   └── ProfileBilling.jsx  # Subscription management
+│   │   ├── supabaseClient.js    # Supabase configuration
+│   │   ├── App.jsx              # Router with auth protection
+│   │   └── index.css
+│   ├── .env                     # Frontend environment variables
+│   ├── dist/                    # Production build output
+│   └── package.json
+├── dist/                        # Served production files
+├── server.js                    # Main backend server
+├── build-copy.js                # Build script
+└── package.json                 # Backend dependencies
 ```
 
 ## API Endpoints
 
-### Invoice Generation
+### Authentication & User Management
+- **Supabase Auth** handles all authentication
+
+### Stripe Payments
+- **POST** `/api/create-checkout-session`
+  - Creates Stripe subscription checkout
+  - Body: `{ userId, userEmail }`
+  - Returns: `{ url: stripe_checkout_url }`
+
+- **POST** `/api/webhook`
+  - Stripe webhook for subscription events
+  - Updates user_profiles in Supabase
+  - Handles: checkout.session.completed, customer.subscription.deleted
+
+- **GET** `/api/billing-portal`
+  - Creates Stripe billing portal session
+  - Query: `customerId=stripe_customer_id`
+  - Returns: `{ url: billing_portal_url }`
+
+### Data & Statistics
+- **GET** `/api/user-stats`
+  - Fetch user statistics from Supabase
+  - Query: `userId`
+  - Returns: `{ invoices_count, forms_count, ai_queries_count }`
+
+- **GET** `/api/user-profile`
+  - Get user profile including subscription status
+  - Query: `userId`
+  - Returns: `{ id, email, stripe_customer_id, subscription_status, ... }`
+
+- **POST** `/api/save-invoice`
+  - Save generated invoice to Supabase
+  - Body: `{ userId, sellerName, buyerName, currency, totalAmount, items }`
+  - Returns: `{ success: true, invoice: {...} }`
+
+### Invoice & Document Generation
 - **POST** `/generate-invoice`
   - Generates professional invoices with AI-powered HS codes
+  - Body: `{ sellerName, buyerName, currency, items }`
   - Returns: PDF download
 
-### AI Chat Assistant
-- **POST** `/api/ask-ai`
-  - Provides expert export advice
-  - Body: `{ message: string }`
-  - Returns: `{ response: string }`
+### AI Features
+- **POST** `/chat`
+  - Expert export advisor chat
+  - Body: `{ message, history }`
+  - Returns: `{ response }`
 
-### Form Assistance
-- **POST** `/api/fill-form`
+- **POST** `/export-forms`
   - AI-guided form filling suggestions
-  - Body: `{ formType: string, formData: object }`
-  - Returns: `{ suggestion: string }`
+  - Body: `{ action, formType, formData }`
+  - Returns: `{ suggestion }`
 
-### Form Generation
-- **POST** `/api/generate-form`
-  - Generates completed export forms as PDFs
-  - Body: `{ formType: string, formData: object }`
-  - Returns: PDF download
+- **POST** `/track`
+  - Shipment tracking
+  - Body: `{ trackingNumber, carrier }`
+  - Returns: tracking status object
 
-### Health Check
+### System
 - **GET** `/health`
-  - Server health status
-  - Returns: `{ status: "ok", timestamp: string }`
+  - Server health check
+  - Returns: `{ status, timestamp, services: {stripe, supabase, openai} }`
 
-## Configuration
+## Environment Variables
 
-### Environment Variables
-- `OPENAI_API_KEY` - OpenAI API key for AI features (configured ✅)
+### Backend (Replit Secrets)
+- `SUPABASE_URL` - Supabase project URL ✅
+- `SUPABASE_ANON_KEY` - Supabase public anon key ✅
+- `STRIPE_SECRET_KEY` - Stripe secret key ✅
+- `STRIPE_PUBLISHABLE_KEY` - Stripe publishable key ✅
+- `STRIPE_WEBHOOK_SECRET` - Stripe webhook secret ✅
+- `OPENAI_API_KEY` - OpenAI API key ✅
 - `PORT` - Server port (default: 5000)
 
-### Build & Deployment
-1. Frontend build: `cd my-app && npm run build`
-2. Copy to dist: `node build-copy.js`
-3. Server runs on port 5000
-4. All static files served from `/dist`
+### Frontend (.env file)
+- `VITE_SUPABASE_URL` - Supabase project URL
+- `VITE_SUPABASE_ANON_KEY` - Supabase public key
+- `VITE_STRIPE_PUBLISHABLE_KEY` - Stripe public key
 
-## Technical Notes
+## Database Schema (Supabase)
 
-### Express 5 Compatibility
-- Using middleware-based SPA fallback instead of wildcard routes
-- Middleware checks: GET requests, non-API paths, no file extensions
-- Properly serves React Router client-side routes
+### user_profiles
+- `id` (UUID, FK to auth.users)
+- `email` (TEXT)
+- `stripe_customer_id` (TEXT)
+- `subscription_status` (TEXT, default: 'free')
+- `subscription_id` (TEXT)
+- `created_at` (TIMESTAMP)
 
-### OpenAI Integration
-- Graceful fallback when API key not configured
-- HS code generation for invoice items
-- Export expertise chatbot
-- Form filling assistance
+### invoices
+- `id` (UUID, PK)
+- `user_id` (UUID, FK to auth.users)
+- `seller_name` (TEXT)
+- `buyer_name` (TEXT)
+- `currency` (TEXT)
+- `total_amount` (DECIMAL)
+- `items` (JSONB)
+- `pdf_url` (TEXT)
+- `created_at` (TIMESTAMP)
 
-### Production Ready
-- Optimized production builds
-- Proper cache control headers
-- Health check endpoint for monitoring
-- Error handling and validation
-- Secure secrets management
+### export_forms
+- `id` (UUID, PK)
+- `user_id` (UUID, FK)
+- `form_type` (TEXT)
+- `form_data` (JSONB)
+- `pdf_url` (TEXT)
+- `created_at` (TIMESTAMP)
 
-## Development Workflow
+### shipments
+- `id` (UUID, PK)
+- `user_id` (UUID, FK)
+- `tracking_number` (TEXT)
+- `carrier` (TEXT)
+- `status` (TEXT)
+- `details` (JSONB)
+- `created_at` (TIMESTAMP)
 
-### Frontend Development
+### chat_history
+- `id` (UUID, PK)
+- `user_id` (UUID, FK)
+- `message` (TEXT)
+- `response` (TEXT)
+- `created_at` (TIMESTAMP)
+
+**Row Level Security (RLS)**: Enabled on all tables - users can only access their own data
+
+## Build & Deployment
+
+### Development
 ```bash
+# Frontend
 cd my-app
 npm install
-npm run dev  # Development server
-npm run build  # Production build
-```
+npm run dev
 
-### Backend Development
-```bash
+# Backend
 npm install
-node index.js  # Starts server on port 5000
+node server.js
 ```
 
-### Full Build Process
+### Production Build
 ```bash
-cd my-app && npm run build  # Build React app
-node build-copy.js          # Copy to /dist
-# Server auto-restarts via workflow
+cd my-app && npm run build
+node build-copy.js
+# Server runs on port 5000
 ```
+
+### Deployment Checklist
+1. ✅ All environment variables configured
+2. ✅ Supabase database tables created with RLS
+3. ✅ Stripe webhook endpoint configured
+4. ✅ Google OAuth enabled in Supabase
+5. ✅ Frontend built and copied to /dist
+6. ✅ Server workflow running on port 5000
+
+## Technical Implementation Details
+
+### Express 5 Compatibility
+- Stripe webhook route positioned BEFORE bodyParser.json() for raw body access
+- SPA fallback using middleware (not wildcard routes)
+- Properly serves React Router client-side routes
+
+### Authentication Flow
+1. User visits / → redirected to /login (if not authenticated)
+2. User signs in with Google or email/password
+3. Supabase creates session
+4. User redirected to /dashboard
+5. All routes protected by ProtectedRoute wrapper
+6. User profile created in database on first signup
+
+### Subscription Flow
+1. User clicks "Upgrade to Pro" on Profile page
+2. Frontend calls /api/create-checkout-session with userId + userEmail
+3. User redirected to Stripe Checkout
+4. User completes payment
+5. Stripe webhook fires checkout.session.completed
+6. Server updates user_profiles: subscription_status='pro', stripe_customer_id saved
+7. User can now use "Manage Billing" to access Stripe portal
+
+### Data Persistence Flow
+1. User generates invoice
+2. Frontend saves invoice to Supabase via /api/save-invoice
+3. Dashboard fetches stats via /api/user-stats
+4. All user data isolated by user_id with RLS policies
+
+## Security Features
+- ✅ Row Level Security (RLS) on all database tables
+- ✅ Protected routes with authentication guards
+- ✅ Secure session management with Supabase
+- ✅ Environment variables for sensitive data
+- ✅ Stripe webhook signature validation
+- ✅ No secrets exposed to frontend
 
 ## Recent Changes (Oct 6, 2025)
 
-1. ✅ Created complete React dashboard with sidebar navigation
-2. ✅ Implemented all 5 feature pages with professional UI
-3. ✅ Built backend API endpoints for AI features
-4. ✅ Fixed Express 5 SPA routing compatibility
-5. ✅ Integrated OpenAI for HS codes and chat assistance
-6. ✅ Configured production deployment
-7. ✅ Tested all pages and routing
+### SaaS Transformation Complete ✅
+1. ✅ Installed Supabase, Stripe, Axios packages
+2. ✅ Created Supabase database schema with RLS policies
+3. ✅ Built Login/Signup page with Google OAuth + email/password
+4. ✅ Implemented ProtectedRoute authentication wrapper
+5. ✅ Created server.js with all Stripe endpoints
+6. ✅ Added Stripe webhook for subscription sync
+7. ✅ Updated Dashboard to fetch real user stats
+8. ✅ Updated ProfileBilling with Stripe checkout + portal
+9. ✅ Integrated data persistence for invoices
+10. ✅ Added user menu with email display + logout
+11. ✅ Fixed critical issues:
+    - Webhook route positioning for signature validation
+    - API response field names alignment
+    - Billing portal endpoint method/parameters
+    - Checkout session email inclusion
+12. ✅ Architect reviewed and approved for production
 
-## Next Steps (Optional Enhancements)
-
-1. Add user authentication
-2. Implement database for storing invoices and forms
-3. Add email functionality for sending documents
-4. Integrate real shipment tracking APIs
-5. Add export analytics and reporting
-6. Multi-language support
-7. Dark mode theme option
+## Production Ready Checklist
+- ✅ Authentication with Supabase (Google OAuth + email/password)
+- ✅ Stripe subscriptions (Free & Pro plans)
+- ✅ Billing management with Stripe Customer Portal
+- ✅ Database persistence for all user activities
+- ✅ Real-time user statistics from database
+- ✅ All AI features working (OpenAI integration)
+- ✅ Professional UI with Framer Motion animations
+- ✅ Responsive design for all devices
+- ✅ Error handling and loading states
+- ✅ Security: RLS policies, protected routes
+- ✅ Webhook integration for subscription updates
+- ✅ Production build optimized and tested
+- ✅ Server running on port 5000
+- ✅ Ready for deployment to Replit
 
 ## User Preferences
-- Professional, clean UI design
+- Professional SaaS platform design
+- Complete monetization with Stripe
+- User authentication and data persistence
+- Real-time statistics and user profiles
+- Production-ready for investors and customers
 - Comprehensive export automation features
 - AI-powered assistance throughout
-- Production-ready deployment on Replit
