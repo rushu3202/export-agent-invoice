@@ -58,6 +58,7 @@ export default function ProfileBilling() {
 
       const response = await axios.post('/api/create-checkout-session', {
         userId: user.id,
+        userEmail: user.email
       });
 
       if (response.data && response.data.url) {
@@ -73,18 +74,12 @@ export default function ProfileBilling() {
 
   const handleManageBilling = async () => {
     try {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
-      if (authError) throw authError;
-      
-      if (!user) {
-        alert('Please log in to manage billing');
+      if (!userProfile || !userProfile.stripe_customer_id) {
+        alert('No billing information found. Please upgrade first.');
         return;
       }
 
-      const response = await axios.post('/api/billing-portal', {
-        userId: user.id,
-      });
+      const response = await axios.get(`/api/billing-portal?customerId=${userProfile.stripe_customer_id}`);
 
       if (response.data && response.data.url) {
         window.location.href = response.data.url;

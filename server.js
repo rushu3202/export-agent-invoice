@@ -46,6 +46,48 @@ function generateInvoiceNumber() {
 }
 
 app.use(cors());
+
+app.post('/api/webhook', bodyParser.raw({ type: 'application/json' }), async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(
+      req.body,
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET
+    );
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object;
+    const userId = session.metadata.userId;
+    
+    await supabase
+      .from('user_profiles')
+      .update({
+        stripe_customer_id: session.customer,
+        subscription_status: 'pro',
+        subscription_id: session.subscription
+      })
+      .eq('id', userId);
+  }
+
+  if (event.type === 'customer.subscription.deleted') {
+    const subscription = event.data.object;
+    
+    await supabase
+      .from('user_profiles')
+      .update({ subscription_status: 'free' })
+      .eq('subscription_id', subscription.id);
+  }
+
+  res.json({ received: true });
+});
+
 app.use(bodyParser.json());
 app.use('/public', express.static(path.join(__dirname, 'public')));
 
@@ -105,47 +147,6 @@ app.post('/api/create-checkout-session', async (req, res) => {
   }
 });
 
-app.post('/api/webhook', bodyParser.raw({ type: 'application/json' }), async (req, res) => {
-  const sig = req.headers['stripe-signature'];
-  let event;
-
-  try {
-    event = stripe.webhooks.constructEvent(
-      req.body,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET
-    );
-  } catch (err) {
-    console.error('Webhook signature verification failed:', err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
-
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object;
-    const userId = session.metadata.userId;
-    
-    await supabase
-      .from('user_profiles')
-      .update({
-        stripe_customer_id: session.customer,
-        subscription_status: 'pro',
-        subscription_id: session.subscription
-      })
-      .eq('id', userId);
-  }
-
-  if (event.type === 'customer.subscription.deleted') {
-    const subscription = event.data.object;
-    
-    await supabase
-      .from('user_profiles')
-      .update({ subscription_status: 'free' })
-      .eq('subscription_id', subscription.id);
-  }
-
-  res.json({ received: true });
-});
-
 app.get('/api/billing-portal', async (req, res) => {
   try {
     const { customerId } = req.query;
@@ -197,9 +198,9 @@ app.get('/api/user-stats', async (req, res) => {
     ]);
 
     res.json({
-      invoices: invoices.count || 0,
-      forms: forms.count || 0,
-      aiQueries: queries.count || 0
+      invoices_count: invoices.count || 0,
+      forms_count: forms.count || 0,
+      ai_queries_count: queries.count || 0
     });
   } catch (error) {
     console.error('User stats error:', error);
