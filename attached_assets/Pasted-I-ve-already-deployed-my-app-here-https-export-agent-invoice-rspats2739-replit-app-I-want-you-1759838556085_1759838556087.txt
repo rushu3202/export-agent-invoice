@@ -1,0 +1,147 @@
+I’ve already deployed my app here:
+🌐 https://export-agent-invoice-rspats2739.replit.app
+
+I want you to completely fix and finalize this app so it becomes a fully working professional SaaS AI platform for exporters, with these exact requirements:
+
+🔧 1. Backend Fixes
+
+Replace the existing server.js with a clean Express backend that:
+
+Connects properly to Supabase (for users, invoices, forms).
+
+Integrates Stripe Checkout and Billing Portal for payments and subscriptions.
+
+Fixes “Failed to load stats” on the Dashboard by fetching user data from Supabase.
+
+Provides working API endpoints:
+
+GET /api/user-stats → return number of invoices, forms, and plan.
+
+POST /api/checkout → create Stripe checkout session.
+
+POST /api/manage-billing → open Stripe billing portal.
+
+POST /api/webhook → handle checkout.session.completed events.
+
+Includes /health endpoint and serves the React frontend from dist.
+
+Use correct live domain: https://export-agent-invoice-rspats2739.replit.app
+
+No localhost anywhere.
+
+Port should be process.env.PORT || 5000.
+
+💳 2. Stripe Integration
+
+Use these keys from Secrets:
+
+STRIPE_SECRET_KEY
+STRIPE_WEBHOOK_SECRET
+VITE_STRIPE_PUBLISHABLE_KEY
+
+
+Set up working checkout session for:
+
+Pro Plan (£9.99/month)
+
+With test card 4242 4242 4242 4242 for Stripe test mode.
+
+Set up “Manage Billing” to open Stripe Billing Portal.
+
+Test the full flow:
+
+Click “Upgrade to Pro” → redirect to checkout → return to success page.
+
+“Manage Billing” → open Stripe customer portal.
+
+Add success and cancel pages with friendly messages.
+
+Ensure webhook route works correctly.
+
+👤 3. Authentication (Supabase)
+
+Enable Google OAuth login and standard email/password.
+
+When a user logs in, save their basic info (name, email, join date).
+
+Show logged-in user details in Profile & Billing.
+
+Display current plan (Free or Pro) based on Stripe subscription status.
+
+Ensure OAuth works live (fix redirect_uri_mismatch).
+Add redirect:
+https://export-agent-invoice-rspats2739.replit.app/**
+
+📊 4. Dashboard
+
+“Failed to load stats” must be fixed — display real Supabase data:
+
+Invoices generated count
+
+Forms completed count
+
+Current plan
+
+If no data, default to 0.
+
+💼 5. Frontend Fixes
+
+Ensure all buttons actually call backend routes:
+
+“Upgrade to Pro” → /api/checkout
+
+“Manage Billing” → /api/manage-billing
+
+Add success and cancel routes for Stripe.
+
+Fix Profile page so “Upgrade to Pro” and “Manage Billing” are clickable and functional.
+
+Remove demo placeholders (e.g., demo@exportai.com
+) and connect to Supabase user info.
+
+🗃️ 6. Environment Variables
+
+Please verify these are correctly used in Replit Secrets:
+
+SUPABASE_URL
+SUPABASE_KEY
+STRIPE_SECRET_KEY
+STRIPE_WEBHOOK_SECRET
+VITE_STRIPE_PUBLISHABLE_KEY
+
+🌍 7. Testing
+
+After you finish:
+
+Visit the live app and confirm all of these work:
+✅ Login via Google or email
+✅ Dashboard shows stats
+✅ Invoice Generator works
+✅ “Upgrade to Pro” redirects to Stripe checkout
+✅ “Manage Billing” opens Stripe portal
+✅ Webhook logs Stripe events in console
+✅ Profile shows real user info and plan
+
+🧾 8. Bonus polish
+
+Add simple success and cancel pages:
+
+/success → “🎉 Payment successful! You are now Pro.”
+
+/cancel → “❌ Payment cancelled. Try again later.”
+
+Improve Profile & Billing layout: show plan, email, join date, and “Upgrade to Pro” button nicely styled.
+
+Add health route for uptime check.
+
+Please rebuild and restart the project after applying all fixes, test everything, and confirm that:
+
+All API routes respond correctly.
+
+Stripe checkout and billing work live.
+
+Supabase auth and stats are functional.
+
+App is 100% working on the Replit live domain.
+
+Once complete, provide a short summary of what was fixed and tested ✅
