@@ -3,8 +3,9 @@
 ## Overview
 A complete full-stack SaaS platform for automating export documentation and compliance. Users can sign up, subscribe to paid plans, and leverage AI-powered tools to streamline international trade processes.
 
-**Status**: Production Ready ✅  
+**Status**: Code Ready for Deployment ✅  
 **SaaS Transformation**: Complete ✅  
+**Deployment Status**: Awaiting Republish 🔄  
 **Last Updated**: October 7, 2025
 
 ## SaaS Features
@@ -331,6 +332,27 @@ node build-copy.js
 - ✅ No secrets exposed to frontend
 
 ## Recent Changes (Oct 7, 2025)
+
+### Deployment Preparation Complete ✅
+1. ✅ Frontend rebuilt with latest code (Vite build successful)
+2. ✅ Build files copied to /dist directory
+3. ✅ Deployment configuration updated in .replit:
+   - Build: `cd my-app && npm run build && node build-copy.js`
+   - Run: `node server.js`
+   - Target: Autoscale
+4. ✅ All API endpoints verified in server.js:
+   - /api/create-checkout-session (POST)
+   - /api/billing-portal (GET)
+   - /api/webhook (POST)
+   - /api/user-profile (GET)
+   - /api/user-stats (GET)
+   - /api/save-invoice (POST)
+5. ✅ All environment variables configured
+6. ✅ Development server tested and working
+7. ✅ Debug logging cleaned up
+8. 🔄 **Ready for manual republish from Replit UI**
+
+**Note**: Published app (https://export-agent-invoice-rspats2739.replit.app) currently shows old code. User needs to click "Deploy" button in Replit to republish with latest changes.
 
 ### Final Production Deployment Fixes ✅
 1. ✅ Created all missing Supabase database tables:
