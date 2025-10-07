@@ -8,6 +8,8 @@ import ExportForms from './pages/ExportForms';
 import AIChatAssistant from './pages/AIChatAssistant';
 import ShipmentTracker from './pages/ShipmentTracker';
 import ProfileBilling from './pages/ProfileBilling';
+import Success from './pages/Success';
+import Cancel from './pages/Cancel';
 import './App.css';
 
 function App() {
@@ -15,6 +17,8 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/success" element={<ProtectedRoute><Success /></ProtectedRoute>} />
+        <Route path="/cancel" element={<ProtectedRoute><Cancel /></ProtectedRoute>} />
         <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Home />} />
