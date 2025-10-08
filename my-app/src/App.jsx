@@ -4,6 +4,9 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Home from './pages/Home';
 import InvoiceGenerator from './pages/InvoiceGenerator';
+import InvoiceHistory from './pages/InvoiceHistory';
+import Contacts from './pages/Contacts';
+import HSFinder from './pages/HSFinder';
 import ExportForms from './pages/ExportForms';
 import AIChatAssistant from './pages/AIChatAssistant';
 import ShipmentTracker from './pages/ShipmentTracker';
@@ -24,6 +27,9 @@ function App() {
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Home />} />
           <Route path="invoice" element={<InvoiceGenerator />} />
+          <Route path="invoices" element={<InvoiceHistory />} />
+          <Route path="contacts" element={<Contacts />} />
+          <Route path="hs-finder" element={<HSFinder />} />
           <Route path="export-forms" element={<ExportForms />} />
           <Route path="chat" element={<AIChatAssistant />} />
           <Route path="shipment" element={<ShipmentTracker />} />
