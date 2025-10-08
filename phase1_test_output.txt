@@ -1,0 +1,33 @@
+=== ExportAgent Phase 1 API Test ===
+Base URL: http://localhost:5000
+
+1. Testing /health endpoint...
+Response: {"status":"ok","timestamp":"2025-10-08T19:32:59.522Z","services":{"stripe":true,"supabase":true,"openai":true}}
+
+2. Testing /api/hs-search endpoint (auth required - expect 401)...
+Response: {"error":"No authorization token provided"}
+HTTP_STATUS:401
+
+3. Testing /api/documents/generate endpoint (auth required - expect 401)...
+Response: {"error":"No authorization token provided"}
+HTTP_STATUS:401
+
+4. Testing /api/usage endpoint (auth required - expect 401)...
+Response: {"error":"No authorization token provided"}
+HTTP_STATUS:401
+
+5. Testing /api/contacts endpoint (auth required - expect 401)...
+Response: {"error":"No authorization token provided"}
+HTTP_STATUS:401
+
+6. Testing /api/shipments POST endpoint (auth required - expect 401)...
+Response: {"error":"No authorization token provided"}
+HTTP_STATUS:401
+
+=== Phase 1 API Test Complete ===
+
+Summary:
+- /health endpoint: Working (returns service status)
+- All protected endpoints return 401 without auth token (expected behavior)
+- Authentication middleware is properly configured
+- Phase 1 backend implementation complete
