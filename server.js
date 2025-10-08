@@ -5,6 +5,7 @@ import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 import PDFDocument from 'pdfkit';
+import nodemailer from 'nodemailer';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -42,6 +43,18 @@ const supabase = createClient(
 
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
+
+// Nodemailer transporter - only configured if credentials are available
+const isEmailConfigured = !!(process.env.EMAIL_USER && process.env.EMAIL_PASSWORD);
+const mailTransporter = isEmailConfigured 
+  ? nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD
+      }
+    })
   : null;
 
 const currencySymbols = {
@@ -230,6 +243,16 @@ app.get('/health', (req, res) => {
   });
 });
 
+app.get('/api/config', (req, res) => {
+  res.json({
+    features: {
+      email: isEmailConfigured,
+      ai: !!openai,
+      payments: !!process.env.STRIPE_SECRET_KEY
+    }
+  });
+});
+
 app.post('/api/create-checkout-session', async (req, res) => {
   try {
     const { userEmail, userId } = req.body;
@@ -409,10 +432,11 @@ app.post('/generate-invoice', authenticateUser, async (req, res) => {
     }
 
     const payload = req.body || {};
-    let { sellerName, buyerName, items, currency } = payload;
+    let { sellerName, buyerName, buyerEmail, items, currency, taxRate = 0, sendEmail = false } = payload;
 
     currency = (currency || "USD").toString().toUpperCase();
     const symbol = currencySymbols[currency] || currency + " ";
+    taxRate = Number(taxRate) || 0;
 
     if (typeof items === "string") {
       try {
@@ -435,15 +459,32 @@ app.post('/generate-invoice', authenticateUser, async (req, res) => {
       }
     }
 
+    const invoiceNo = generateInvoiceNumber();
+    const invoiceDate = new Date().toLocaleDateString("en-GB");
+    
+    // Calculate totals
+    let subtotal = 0;
+    for (const it of items) {
+      const qty = Number(it.qty || 0);
+      const unit = Number(it.unitPrice || 0);
+      subtotal += qty * unit;
+    }
+    const taxAmount = subtotal * (taxRate / 100);
+    const grandTotal = subtotal + taxAmount;
+
+    // Generate PDF
     const doc = new PDFDocument({ margin: 50, size: "A4" });
-
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename=invoice-${generateInvoiceNumber()}.pdf`
-    );
-
-    doc.pipe(res);
+    const chunks = [];
+    
+    if (sendEmail) {
+      // Collect PDF in memory for email
+      doc.on('data', (chunk) => chunks.push(chunk));
+    } else {
+      // Stream PDF to response
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename=invoice-${invoiceNo}.pdf`);
+      doc.pipe(res);
+    }
 
     const logoPath = path.join(__dirname, "public", "logo.png");
     if (fs.existsSync(logoPath)) {
@@ -455,8 +496,6 @@ app.post('/generate-invoice', authenticateUser, async (req, res) => {
     }
     doc.fontSize(20).text("COMMERCIAL INVOICE", { align: "center" });
 
-    const invoiceNo = generateInvoiceNumber();
-    const invoiceDate = new Date().toLocaleDateString("en-GB");
     doc.fontSize(10).text(`Invoice No: ${invoiceNo}`, 420, 50, { align: "left" });
     doc.text(`Date: ${invoiceDate}`, 420, 65, { align: "left" });
 
@@ -485,13 +524,11 @@ app.post('/generate-invoice', authenticateUser, async (req, res) => {
 
     doc.font("Helvetica").fontSize(10);
     let position = tableTop + 25;
-    let grandTotal = 0;
     for (let i = 0; i < items.length; i++) {
       const it = items[i];
       const qty = Number(it.qty || 0);
       const unit = Number(it.unitPrice || 0);
       const lineTotal = qty * unit;
-      grandTotal += lineTotal;
 
       doc.text(String(i + 1), 50, position);
       doc.text(it.description, 90, position, { width: 230 });
@@ -508,7 +545,17 @@ app.post('/generate-invoice', authenticateUser, async (req, res) => {
     }
 
     doc.moveTo(350, position + 5).lineTo(560, position + 5).stroke();
-    doc.fontSize(12).font("Helvetica-Bold").text(`Grand Total: ${symbol}${grandTotal.toFixed(2)}`, 350, position + 15, { align: "right" });
+    
+    // Add subtotal, tax, and total
+    position += 15;
+    doc.fontSize(11).font("Helvetica");
+    doc.text(`Subtotal: ${symbol}${subtotal.toFixed(2)}`, 350, position, { align: "right" });
+    position += 20;
+    if (taxRate > 0) {
+      doc.text(`Tax (${taxRate}%): ${symbol}${taxAmount.toFixed(2)}`, 350, position, { align: "right" });
+      position += 20;
+    }
+    doc.fontSize(12).font("Helvetica-Bold").text(`Grand Total: ${symbol}${grandTotal.toFixed(2)}`, 350, position, { align: "right" });
 
     doc.moveDown(6);
     const sigY = doc.y + 20;
@@ -530,9 +577,7 @@ app.post('/generate-invoice', authenticateUser, async (req, res) => {
     
     doc.text(companyFooter, { align: "center" });
 
-    doc.end();
-
-    // Save invoice to documents table (use authenticated user ID)
+    // Save invoice to documents table
     try {
       await supabase
         .from('documents')
@@ -545,6 +590,9 @@ app.post('/generate-invoice', authenticateUser, async (req, res) => {
             buyer_name: buyerName,
             items,
             currency,
+            tax_rate: taxRate,
+            subtotal: subtotal,
+            tax_amount: taxAmount,
             total_amount: grandTotal,
             invoice_number: invoiceNo,
             invoice_date: invoiceDate
@@ -555,6 +603,70 @@ app.post('/generate-invoice', authenticateUser, async (req, res) => {
     } catch (dbError) {
       console.error('[PDF Generator] Failed to save to documents:', dbError.message);
     }
+
+    // Send email if requested
+    if (sendEmail) {
+      // Validate email configuration
+      if (!isEmailConfigured || !mailTransporter) {
+        return res.status(400).json({ 
+          error: 'Email not configured', 
+          message: 'Email delivery is not available. Please contact support or download the PDF instead.' 
+        });
+      }
+
+      // Validate buyer email
+      if (!buyerEmail || !buyerEmail.includes('@')) {
+        return res.status(400).json({ 
+          error: 'Invalid email', 
+          message: 'Please provide a valid buyer email address to send the invoice.' 
+        });
+      }
+
+      // Register end handler BEFORE calling doc.end()
+      doc.on('end', async () => {
+        try {
+          const pdfBuffer = Buffer.concat(chunks);
+          
+          const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: buyerEmail,
+            subject: `Invoice ${invoiceNo} from ${sellerName}`,
+            html: `
+              <h2>Commercial Invoice</h2>
+              <p>Dear ${buyerName},</p>
+              <p>Please find attached your invoice ${invoiceNo} dated ${invoiceDate}.</p>
+              <p><strong>Total Amount: ${symbol}${grandTotal.toFixed(2)}</strong></p>
+              <p>Thank you for your business!</p>
+              <br>
+              <p>Best regards,<br>${sellerName}</p>
+              <hr>
+              <p style="font-size: 12px; color: gray;">This invoice was generated by ExportAgent - Professional Export Documentation Platform</p>
+            `,
+            attachments: [
+              {
+                filename: `invoice-${invoiceNo}.pdf`,
+                content: pdfBuffer,
+                contentType: 'application/pdf'
+              }
+            ]
+          };
+
+          await mailTransporter.sendMail(mailOptions);
+          console.log(`[Email] Sent invoice ${invoiceNo} to ${buyerEmail}`);
+          res.json({ success: true, message: `Invoice sent to ${buyerEmail}`, invoiceNo });
+        } catch (emailError) {
+          console.error('[Email] Failed to send invoice:', emailError.message);
+          res.status(500).json({ 
+            error: 'Failed to send email', 
+            message: 'Failed to send invoice via email. Please try downloading the PDF instead.',
+            details: emailError.message 
+          });
+        }
+      });
+    }
+
+    // Call doc.end() to finalize PDF (must be after registering 'end' handler for email)
+    doc.end();
   } catch (err) {
     console.error("Generate invoice error:", err);
     res.status(500).json({ error: "Failed to generate invoice" });

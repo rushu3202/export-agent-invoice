@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FileDown, Plus, Trash2, CheckCircle, Mail } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import axios from 'axios';
@@ -17,6 +17,20 @@ export default function InvoiceGenerator() {
   const [sendingEmail, setSendingEmail] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [error, setError] = useState('');
+  const [emailEnabled, setEmailEnabled] = useState(false);
+
+  useEffect(() => {
+    checkEmailConfig();
+  }, []);
+
+  const checkEmailConfig = async () => {
+    try {
+      const response = await axios.get('/api/config');
+      setEmailEnabled(response.data.features.email);
+    } catch (err) {
+      console.error('Failed to check email config:', err);
+    }
+  };
 
   const addItem = () => {
     setItems([...items, { description: '', qty: 1, unitPrice: 0 }]);
@@ -306,14 +320,16 @@ export default function InvoiceGenerator() {
             {loading ? 'Generating...' : 'Download Invoice PDF'}
           </button>
 
-          <button
-            onClick={() => generateInvoice(true)}
-            disabled={sendingEmail || items.length === 0 || !buyerEmail}
-            className="flex-1 flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold"
-          >
-            <Mail className="w-5 h-5 mr-2" />
-            {sendingEmail ? 'Sending...' : 'Send via Email'}
-          </button>
+          {emailEnabled && (
+            <button
+              onClick={() => generateInvoice(true)}
+              disabled={sendingEmail || items.length === 0 || !buyerEmail}
+              className="flex-1 flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold"
+            >
+              <Mail className="w-5 h-5 mr-2" />
+              {sendingEmail ? 'Sending...' : 'Send via Email'}
+            </button>
+          )}
         </div>
 
         <p className="mt-4 text-sm text-gray-500 text-center">
