@@ -1,0 +1,109 @@
+I have already built the basic version of my EXPORTAGENT app (a tool that helps exporters generate invoices, documents, and manage their exports easily).
+
+Now I want to upgrade the app to a more professional, paid-level product.
+
+✅ Please add and build the following Phase 2 features in a clean, responsive UI:
+
+🧾 1. Company Branding & Footer on All Invoices
+
+Add this exact footer to every generated invoice PDF (before doc.end() in server.js):
+
+EXPORTAGENT LTD
+Registered in England and Wales
+Company No: [Your Company Number]
+Registered Address: [Your Registered Office Address]
+VAT (if registered): [leave blank until registered]
+
+
+The footer should appear neatly at the bottom of every invoice.
+
+🌐 2. Professional Website Footer
+
+In public/index.html or React footer component, paste the same footer.
+
+Make the footer look clean, centered, with a small font.
+
+Add social icons (LinkedIn, Instagram, Email).
+
+👤 3. Dashboard Upgrade
+
+Add a professional-looking dashboard with:
+
+Total invoices generated 📊
+
+Total revenue 💰
+
+Quick action buttons (New Invoice, View All Invoices, Export Data).
+
+Use cards and simple charts for analytics (Recharts or Chart.js).
+
+📁 4. Export Client Data & Invoice History
+
+Allow the user to view all previous invoices.
+
+Add a “Download CSV” or “Download Excel” button to export invoice history.
+
+Store client details (Name, Company, Country, Email).
+
+💳 5. Add Stripe Payment Integration (Optional for future)
+
+Add a “Pay Now” button on the invoice PDF or invoice page.
+
+Integrate Stripe Checkout for easy payment collection from buyers.
+
+🧠 6. AI Smart Export Helper (Basic Chat)
+
+Add a simple AI chatbot box in the dashboard that can answer exporters’ basic questions (e.g., “How to create an invoice for Germany?”).
+
+For now, just connect to OpenAI API (I will provide the API key in .env).
+
+🌍 7. Multi-Currency & Tax Handling
+
+Add currency dropdown in invoice form (USD, GBP, EUR, INR).
+
+Add tax field (e.g., 0%, 5%, 20%) and calculate total accordingly.
+
+Show total amount with and without tax.
+
+📨 8. Automatic Email Sending of Invoices
+
+After invoice is generated, send the PDF to the client’s email (use Nodemailer).
+
+Email subject: Your Invoice from EXPORTAGENT LTD.
+
+Email body: “Dear [Client Name], Please find attached your invoice.”
+
+🔐 9. Login / Signup Page (Basic Auth)
+
+Add simple authentication system (email & password).
+
+Users can log in to see their own invoices.
+
+Use JWT or any simple auth method.
+
+💻 10. Clean & Modern UI Design
+
+Keep everything simple, fast and mobile friendly.
+
+Use Tailwind CSS or any clean UI library.
+
+Use exportagent branding (blue & white theme).
+
+📎 Tech Stack Notes:
+
+Frontend: React
+
+Backend: Node.js (Express)
+
+Database: MongoDB or JSON file (whichever is easiest to implement)
+
+PDF Generator: pdfkit
+
+Email: Nodemailer
+
+Auth: JWT (basic)
+
+💬 Please build this step by step, cleanly structured with comments so I can understand the code.
+
+🪄 Goal:
+Upgrade EXPORTAGENT into a professional export invoicing & assistance platform with dashboard, branding, client management, invoice history, currency support, and simple AI help — so I can charge users for using it.

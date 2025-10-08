@@ -1,8 +1,9 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Home, FileText, ClipboardList, MessageSquare, Package, Menu, X, User, LogOut, Globe } from 'lucide-react';
+import { Home, FileText, ClipboardList, MessageSquare, Package, Menu, X, User, LogOut, Globe, Users, Search, History } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../supabaseClient';
+import Footer from './Footer';
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -51,9 +52,12 @@ export default function Layout() {
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
     { name: 'Invoice Generator', href: '/invoice', icon: FileText },
+    { name: 'Invoice History', href: '/invoices', icon: History },
+    { name: 'Contacts/CRM', href: '/contacts', icon: Users },
+    { name: 'HS Code Finder', href: '/hs-finder', icon: Search },
+    { name: 'Shipment Tracker', href: '/shipment', icon: Package },
     { name: 'Export Forms', href: '/export-forms', icon: ClipboardList },
     { name: 'AI Chat Assistant', href: '/chat', icon: MessageSquare },
-    { name: 'Shipment Tracker', href: '/shipment', icon: Package },
     { name: 'Profile & Billing', href: '/profile', icon: User },
   ];
 
@@ -149,18 +153,21 @@ export default function Layout() {
           />
         )}
 
-        <main className="flex-1 p-4 lg:p-8">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={location.pathname}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-            >
-              <Outlet />
-            </motion.div>
-          </AnimatePresence>
+        <main className="flex-1 flex flex-col">
+          <div className="flex-1 p-4 lg:p-8">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={location.pathname}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Outlet />
+              </motion.div>
+            </AnimatePresence>
+          </div>
+          <Footer />
         </main>
       </div>
     </div>
