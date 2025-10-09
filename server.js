@@ -1010,6 +1010,65 @@ app.post('/api/hs-search', authenticateUser, async (req, res) => {
   }
 });
 
+// AI Suggest Description endpoint
+app.post('/api/ai-suggest-description', authenticateUser, async (req, res) => {
+  try {
+    const tierCheck = await checkTierAndIncrement(req.user.id, 'ai_queries');
+    
+    if (!tierCheck.allowed) {
+      console.log(`[AI Suggest] Quota exceeded for user ${req.user.id}`);
+      return res.status(402).json({ 
+        error: 'quota_exceeded', 
+        feature: 'ai_queries',
+        plan: tierCheck.plan,
+        message: 'AI query limit reached. Please upgrade to Pro plan.'
+      });
+    }
+
+    const { keywords } = req.body;
+
+    if (!keywords || keywords.trim().length < 2) {
+      return res.status(400).json({ error: 'Please provide product keywords' });
+    }
+
+    if (!openai) {
+      return res.status(503).json({ error: 'AI service not available' });
+    }
+
+    const prompt = `You are a professional product description writer for export invoices. 
+    
+Given these keywords or rough description: "${keywords}"
+
+Generate a clear, professional, and concise product description suitable for a commercial export invoice. The description should:
+- Be 3-8 words maximum
+- Be specific and professional
+- Include key product attributes (material, type, model if applicable)
+- Be suitable for customs documentation
+- Use proper capitalization
+
+Respond with ONLY the product description, nothing else.
+
+Examples:
+Keywords: "laptop dell" → "Dell Latitude Business Laptop Computer"
+Keywords: "cotton shirt" → "100% Cotton Men's Dress Shirt"
+Keywords: "phone charger" → "USB-C Fast Charging Adapter"`;
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 50,
+      temperature: 0.7
+    });
+
+    const description = completion.choices[0].message.content.trim().replace(/^["']|["']$/g, '');
+    console.log(`[AI Suggest] Generated description for user ${req.user.id}: "${keywords}" -> "${description}"`);
+    res.json({ description });
+  } catch (error) {
+    console.error('[AI Suggest] Error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Shipments endpoints
 app.post('/api/shipments', authenticateUser, async (req, res) => {
   try {

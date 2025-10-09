@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FileDown, Plus, Trash2, CheckCircle, Mail, Users } from 'lucide-react';
+import { FileDown, Plus, Trash2, CheckCircle, Mail, Users, Sparkles } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import axios from 'axios';
 
@@ -20,6 +20,7 @@ export default function InvoiceGenerator() {
   const [emailEnabled, setEmailEnabled] = useState(false);
   const [contacts, setContacts] = useState([]);
   const [selectedContact, setSelectedContact] = useState('');
+  const [suggestingIndex, setSuggestingIndex] = useState(null);
 
   useEffect(() => {
     checkEmailConfig();
@@ -62,6 +63,54 @@ export default function InvoiceGenerator() {
       const displayName = contact.company || contact.name;
       setBuyerName(displayName);
       setBuyerEmail(contact.email || '');
+    }
+  };
+
+  const suggestDescription = async (index) => {
+    const currentDesc = items[index].description;
+    if (!currentDesc || currentDesc.trim().length < 2) {
+      setError('Please enter at least a few keywords for the product first');
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+
+    setSuggestingIndex(index);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setError('Please log in to use AI features');
+        setSuggestingIndex(null);
+        return;
+      }
+
+      const response = await fetch('/api/ai-suggest-description', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ keywords: currentDesc })
+      });
+
+      if (response.status === 402) {
+        const data = await response.json();
+        setError(data.message || 'AI query limit reached. Please upgrade to Pro plan.');
+        setSuggestingIndex(null);
+        return;
+      }
+
+      if (!response.ok) throw new Error('Failed to get AI suggestion');
+
+      const data = await response.json();
+      updateItem(index, 'description', data.description);
+      setSuccessMessage('AI generated a professional description!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      console.error('AI suggestion error:', err);
+      setError('Failed to generate description. Please try again.');
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setSuggestingIndex(null);
     }
   };
 
@@ -304,14 +353,35 @@ export default function InvoiceGenerator() {
           <div className="space-y-4">
             {items.map((item, index) => (
               <div key={index} className="flex gap-4 items-start p-4 bg-gray-50 rounded-xl">
-                <div className="flex-1">
-                  <input
-                    type="text"
-                    value={item.description}
-                    onChange={(e) => updateItem(index, 'description', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent"
-                    placeholder="Product description"
-                  />
+                <div className="flex-1 space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={item.description}
+                      onChange={(e) => updateItem(index, 'description', e.target.value)}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                      placeholder="Product description or keywords"
+                    />
+                    <button
+                      onClick={() => suggestDescription(index)}
+                      disabled={suggestingIndex === index || !item.description?.trim()}
+                      className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center whitespace-nowrap"
+                      title="AI Suggest Professional Description"
+                    >
+                      {suggestingIndex === index ? (
+                        <span className="flex items-center">
+                          <Sparkles className="w-4 h-4 mr-1 animate-spin" />
+                          AI...
+                        </span>
+                      ) : (
+                        <span className="flex items-center">
+                          <Sparkles className="w-4 h-4 mr-1" />
+                          AI Suggest
+                        </span>
+                      )}
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500">💡 Enter keywords, then click "AI Suggest" for a professional description</p>
                 </div>
                 <div className="w-24">
                   <input
