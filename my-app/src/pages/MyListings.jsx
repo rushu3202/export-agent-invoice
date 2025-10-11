@@ -71,7 +71,7 @@ export default function MyListings() {
           </p>
         </div>
         <Link
-          to="/marketplace/create"
+          to="/app/marketplace/create"
           className="px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2"
         >
           <Plus className="w-5 h-5" />
@@ -90,7 +90,7 @@ export default function MyListings() {
           <h3 className="text-xl font-semibold text-gray-900 mb-2">No listings yet</h3>
           <p className="text-gray-600 mb-6">Create your first product listing to start reaching buyers</p>
           <Link
-            to="/marketplace/create"
+            to="/app/marketplace/create"
             className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary to-blue-600 text-white rounded-xl hover:shadow-lg transition-all duration-200 font-semibold"
           >
             <Plus className="w-5 h-5 mr-2" />

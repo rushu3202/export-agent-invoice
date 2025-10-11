@@ -50,18 +50,18 @@ export default function Layout() {
   };
   
   const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: Home },
-    { name: 'B2B Marketplace', href: '/marketplace', icon: Store },
-    { name: 'My Listings', href: '/marketplace/my-listings', icon: ListTree },
-    { name: 'My Leads', href: '/marketplace/leads', icon: TrendingUp },
-    { name: 'Invoice Generator', href: '/invoice', icon: FileText },
-    { name: 'Invoice History', href: '/invoices', icon: History },
-    { name: 'Contacts/CRM', href: '/contacts', icon: Users },
-    { name: 'HS Code Finder', href: '/hs-finder', icon: Search },
-    { name: 'Shipment Tracker', href: '/shipment', icon: Package },
-    { name: 'Export Forms', href: '/export-forms', icon: ClipboardList },
-    { name: 'AI Chat Assistant', href: '/chat', icon: MessageSquare },
-    { name: 'Profile & Billing', href: '/profile', icon: User },
+    { name: 'Dashboard', href: '/app/dashboard', icon: Home },
+    { name: 'B2B Marketplace', href: '/app/marketplace', icon: Store },
+    { name: 'My Listings', href: '/app/marketplace/my-listings', icon: ListTree },
+    { name: 'My Leads', href: '/app/marketplace/leads', icon: TrendingUp },
+    { name: 'Invoice Generator', href: '/app/invoice', icon: FileText },
+    { name: 'Invoice History', href: '/app/invoices', icon: History },
+    { name: 'Contacts/CRM', href: '/app/contacts', icon: Users },
+    { name: 'HS Code Finder', href: '/app/hs-finder', icon: Search },
+    { name: 'Shipment Tracker', href: '/app/shipment', icon: Package },
+    { name: 'Export Forms', href: '/app/export-forms', icon: ClipboardList },
+    { name: 'AI Chat Assistant', href: '/app/chat', icon: MessageSquare },
+    { name: 'Profile & Billing', href: '/app/profile', icon: User },
   ];
 
   const isFreeUser = !userProfile || userProfile.subscription_status !== 'pro';
@@ -118,7 +118,7 @@ export default function Layout() {
                 <p className="text-sm font-semibold mb-2">Upgrade to Pro</p>
                 <p className="text-xs text-blue-50 mb-3">Unlock unlimited invoices & AI features</p>
                 <NavLink
-                  to="/profile"
+                  to="/app/profile"
                   className="block text-center bg-white text-primary px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-50 transition-colors"
                 >
                   Upgrade Now

@@ -39,7 +39,7 @@ export default function Login() {
           password,
         })
         if (error) throw error
-        navigate('/dashboard')
+        navigate('/app/dashboard')
       }
     } catch (err) {
       setError(err.message)
@@ -54,7 +54,7 @@ export default function Login() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`
+          redirectTo: `${window.location.origin}/app/dashboard`
         }
       })
       if (error) throw error

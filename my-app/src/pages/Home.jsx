@@ -164,7 +164,7 @@ export default function Home() {
               <p className="text-sm text-gray-600 mt-1">Upgrade to unlock unlimited features and AI assistance</p>
             </div>
             <Link
-              to="/pricing"
+              to="/app/pricing"
               className="px-6 py-2 bg-gradient-to-r from-primary to-blue-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all duration-200"
             >
               Upgrade Now
@@ -352,7 +352,7 @@ export default function Home() {
             </div>
           </div>
           <Link
-            to="/invoice"
+            to="/app/invoice"
             className="bg-white text-primary px-8 py-3 rounded-xl font-bold hover:bg-blue-50 transition-all duration-200 hover:shadow-xl flex items-center gap-2 whitespace-nowrap"
           >
             Get Started

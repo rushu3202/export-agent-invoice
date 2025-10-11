@@ -169,7 +169,7 @@ export default function Marketplace() {
       {/* Add Listing Button for Exporters */}
       <div className="mb-6">
         <Link
-          to="/marketplace/create"
+          to="/app/marketplace/create"
           className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:shadow-lg transition-all duration-200 font-semibold"
         >
           <Package className="w-5 h-5 mr-2" />
@@ -194,7 +194,7 @@ export default function Marketplace() {
           {listings.map((listing) => (
             <Link
               key={listing.id}
-              to={`/marketplace/listing/${listing.id}`}
+              to={`/app/marketplace/listing/${listing.id}`}
               className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 group"
             >
               {listing.image_url && (
