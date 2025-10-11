@@ -36,9 +36,11 @@ const getFrontendUrl = () => {
 const FRONTEND_URL = getFrontendUrl();
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+// Server-side Supabase client with service role for backend operations
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY
 );
 
 const openai = process.env.OPENAI_API_KEY
@@ -316,15 +318,15 @@ app.get('/api/billing-portal', async (req, res) => {
   }
 });
 
-app.post('/api/save-invoice', async (req, res) => {
+app.post('/api/save-invoice', authenticateUser, async (req, res) => {
   try {
-    const { userId, sellerName, buyerName, currency, totalAmount, items } = req.body;
-    console.log(`[Save Invoice] Saving invoice for user: ${userId}`);
+    const { sellerName, buyerName, currency, totalAmount, items } = req.body;
+    console.log(`[Save Invoice] Saving invoice for user: ${req.user.id}`);
     
     const { data, error } = await supabase
       .from('invoices')
       .insert({
-        user_id: userId,
+        user_id: req.user.id,
         seller_name: sellerName,
         buyer_name: buyerName,
         currency,
@@ -346,15 +348,14 @@ app.post('/api/save-invoice', async (req, res) => {
   }
 });
 
-app.get('/api/user-stats', async (req, res) => {
+app.get('/api/user-stats', authenticateUser, async (req, res) => {
   try {
-    const { userId } = req.query;
-    console.log(`[User Stats] Fetching stats for user: ${userId}`);
+    console.log(`[User Stats] Fetching stats for user: ${req.user.id}`);
     
     const [invoices, forms, queries] = await Promise.all([
-      supabase.from('invoices').select('*', { count: 'exact' }).eq('user_id', userId),
-      supabase.from('export_forms').select('*', { count: 'exact' }).eq('user_id', userId),
-      supabase.from('chat_history').select('*', { count: 'exact' }).eq('user_id', userId)
+      supabase.from('invoices').select('*', { count: 'exact' }).eq('user_id', req.user.id),
+      supabase.from('export_forms').select('*', { count: 'exact' }).eq('user_id', req.user.id),
+      supabase.from('chat_history').select('*', { count: 'exact' }).eq('user_id', req.user.id)
     ]);
 
     if (invoices.error) console.error('[User Stats] Invoices error:', invoices.error);
@@ -375,15 +376,14 @@ app.get('/api/user-stats', async (req, res) => {
   }
 });
 
-app.get('/api/user-profile', async (req, res) => {
+app.get('/api/user-profile', authenticateUser, async (req, res) => {
   try {
-    const { userId } = req.query;
-    console.log(`[User Profile] Fetching profile for user: ${userId}`);
+    console.log(`[User Profile] Fetching profile for user: ${req.user.id}`);
     
     const { data, error } = await supabase
       .from('user_profiles')
       .select('*')
-      .eq('id', userId)
+      .eq('id', req.user.id)
       .single();
 
     if (error) {
