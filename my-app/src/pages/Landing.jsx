@@ -22,6 +22,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import CrispChat from '../components/CrispChat';
+import SEO from '../components/SEO';
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -121,6 +122,7 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-white">
+      <SEO />
       {/* Navigation */}
       <motion.nav 
         initial={{ y: -100 }}
