@@ -1,0 +1,110 @@
+I have an existing export platform: https://export-agent-invoice-rspats2739.replit.app
+.
+I’ve already upgraded the core structure in Phase 1.
+
+Now I want to upgrade it to Phase 2, focusing on monetization, AI-powered automation, and B2B marketplace features to build this into a $100M+ export platform.
+
+💰 1. MONETIZATION SYSTEM
+
+💳 Subscription Plans (Stripe / PayPal Integration)
+
+Free Plan: Limited access (basic invoices + 3 free forms per month)
+
+Pro Plan: Unlimited exports, full AI tools, live support
+
+Business Plan: Team access, marketplace priority listing, advanced analytics
+
+🧾 Payment & billing page for users to upgrade plans easily
+
+🧠 Feature restriction logic (based on plan type)
+
+📢 Automated reminder system when a free plan is about to expire
+
+🏪 2. B2B EXPORT MARKETPLACE
+
+📦 Exporter / Buyer Profiles
+
+Exporters can list products with details (price, country, MOQ, HS code, etc.)
+
+Buyers can browse and contact exporters directly
+
+🌍 Advanced search filters: product category, location, price, HS code
+
+🤝 In-app messaging / inquiry system between buyers & sellers
+
+📊 Exporters can view leads & contact requests in their dashboard
+
+💼 Verified business badge for paid members
+
+🧠 3. AI AUTOMATION TOOLS
+
+🧮 Smart Duty & Tax Calculator for different countries
+
+📝 AI Form Assistant that auto-fills export forms based on product + destination
+
+⚠️ Compliance Checker to warn users of missing or invalid info
+
+✍️ One-click Export Pack — generate all documents for a shipment in one click (invoice, packing list, certificate, declaration, etc.)
+
+🧭 4. DASHBOARD & USER EXPERIENCE
+
+📊 Personalized user dashboard for exporters and buyers
+
+📨 Notification system (in-app + email) for:
+
+New leads
+
+Payment reminders
+
+Shipment status updates
+
+🌐 Responsive, modern UI for desktop & mobile
+
+🧰 Admin panel for managing:
+
+Users
+
+Marketplace listings
+
+Payments
+
+Support tickets
+
+🌎 5. TECH REQUIREMENTS
+
+Backend: Node.js (Express)
+
+Frontend: React.js (Tailwind CSS)
+
+Database: PostgreSQL or MongoDB
+
+Authentication: JWT / OAuth
+
+Payment Gateway: Stripe or PayPal
+
+AI Tools: OpenAI API or similar (for smart automation)
+
+Deployment: Replit / Render / Vercel / AWS
+
+Code should be modular, clean, and easy to scale.
+
+🧭 6. WHAT I WANT YOU TO DO (Replit Agent)
+
+Integrate Stripe or PayPal and implement subscription tiers.
+
+Build a clean B2B marketplace module (listings, search, messaging).
+
+Add AI export tools (form autofill, tax calculator, compliance checker).
+
+Add dashboards for both users & admins.
+
+Add notification system + clean UI/UX.
+
+Write clean, scalable code that allows Phase 3 (global scaling) to be added easily.
+
+Add documentation & clear file structure.
+
+🎯 Final Goal for Phase 2:
+Make this platform look and feel like a serious SaaS business with built-in monetization, marketplace, and AI tools, so that it can generate recurring revenue and attract exporters globally.
+
+👉 Please begin implementing these Phase 2 upgrades step by step, starting with subscription plans and marketplace foundation, then layering AI tools and UX improvements.
