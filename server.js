@@ -197,7 +197,7 @@ async function checkTierAndIncrement(userId, action) {
     };
 
     const limits = {
-      free: { docs_created: 3, hs_searches: 5, ai_queries: 200 },
+      free: { docs_created: 5, hs_searches: 5, ai_queries: 5 },
       pro: { docs_created: Infinity, hs_searches: Infinity, ai_queries: Infinity },
       business: { docs_created: Infinity, hs_searches: Infinity, ai_queries: Infinity }
     };
@@ -1065,6 +1065,188 @@ Keywords: "phone charger" → "USB-C Fast Charging Adapter"`;
     res.json({ description });
   } catch (error) {
     console.error('[AI Suggest] Error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Export Forms AI Assistance endpoint
+app.post('/api/export-forms/assist', authenticateUser, async (req, res) => {
+  try {
+    if (!openai) {
+      return res.status(503).json({ 
+        error: 'AI service unavailable', 
+        message: 'AI assistance is currently unavailable. Please try again later.' 
+      });
+    }
+
+    const tierCheck = await checkTierAndIncrement(req.user.id, 'ai_queries');
+    if (!tierCheck.allowed) {
+      return res.status(403).json({ 
+        error: 'AI query limit reached', 
+        message: 'Upgrade to Pro for unlimited AI assistance' 
+      });
+    }
+
+    const { formType, formData } = req.body;
+
+    const formLabels = {
+      shipping_bill: 'Shipping Bill (Customs Clearance)',
+      bill_of_lading: 'Bill of Lading (Cargo Shipment)',
+      packing_list: 'Packing List',
+      certificate_of_origin: 'Certificate of Origin'
+    };
+
+    const formName = formLabels[formType] || formType;
+    const filledFields = Object.entries(formData).filter(([k, v]) => v).map(([k, v]) => `${k}: ${v}`).join(', ');
+
+    const prompt = `You are an expert export documentation assistant. The user is filling out a ${formName}.
+
+Current form data: ${filledFields || 'No fields filled yet'}
+
+Provide helpful, concise guidance on:
+1. What information is still needed
+2. Any tips for correctly filling this form
+3. Common mistakes to avoid
+4. Required format or standards for this document type
+
+Keep your response under 150 words, professional, and actionable.`;
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 200,
+      temperature: 0.7
+    });
+
+    const suggestion = completion.choices[0].message.content.trim();
+    console.log(`[Export Forms] AI assistance provided for ${formType} to user ${req.user.id}`);
+    res.json({ suggestion });
+  } catch (error) {
+    console.error('[Export Forms Assist] Error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Export Forms PDF Generation endpoint
+app.post('/api/export-forms/generate', authenticateUser, async (req, res) => {
+  try {
+    const tierCheck = await checkTierAndIncrement(req.user.id, 'docs');
+    if (!tierCheck.allowed) {
+      return res.status(403).json({ 
+        error: 'Document limit reached', 
+        message: 'Upgrade to Pro for unlimited documents' 
+      });
+    }
+
+    const { formType, formData } = req.body;
+
+    const doc = new PDFDocument({ margin: 50 });
+    const chunks = [];
+
+    doc.on('data', chunk => chunks.push(chunk));
+
+    const pdfEndPromise = new Promise((resolve) => {
+      doc.on('end', () => {
+        const pdfBuffer = Buffer.concat(chunks);
+        resolve(pdfBuffer);
+      });
+    });
+
+    // Header
+    doc.fontSize(20).font('Helvetica-Bold').text(formType.toUpperCase().replace(/_/g, ' '), { align: 'center' });
+    doc.moveDown(0.5);
+    doc.fontSize(10).font('Helvetica').text(`Generated on: ${new Date().toLocaleDateString()}`, { align: 'center' });
+    doc.moveDown(2);
+
+    // Form content based on type
+    doc.fontSize(12).font('Helvetica-Bold');
+
+    if (formType === 'shipping_bill') {
+      doc.text('SHIPPING BILL FOR EXPORT', { underline: true });
+      doc.moveDown();
+      doc.font('Helvetica');
+      doc.text(`Exporter Name: ${formData.exporter_name || 'N/A'}`);
+      doc.text(`Exporter Address: ${formData.exporter_address || 'N/A'}`);
+      doc.moveDown(0.5);
+      doc.text(`Consignee Name: ${formData.consignee_name || 'N/A'}`);
+      doc.text(`Destination Country: ${formData.consignee_country || 'N/A'}`);
+      doc.moveDown(0.5);
+      doc.text(`Description of Goods: ${formData.goods_description || 'N/A'}`);
+      doc.text(`Invoice Value: ${formData.invoice_value || 'N/A'}`);
+      doc.moveDown(0.5);
+      doc.text(`Port of Loading: ${formData.port_of_loading || 'N/A'}`);
+      doc.text(`Port of Discharge: ${formData.port_of_discharge || 'N/A'}`);
+
+    } else if (formType === 'bill_of_lading') {
+      doc.text('BILL OF LADING', { underline: true });
+      doc.moveDown();
+      doc.font('Helvetica');
+      doc.text(`Shipper Name: ${formData.shipper_name || 'N/A'}`);
+      doc.text(`Consignee Name: ${formData.consignee_name || 'N/A'}`);
+      doc.moveDown(0.5);
+      doc.text(`Vessel Name: ${formData.vessel_name || 'N/A'}`);
+      doc.text(`Voyage Number: ${formData.voyage_number || 'N/A'}`);
+      doc.moveDown(0.5);
+      doc.text(`Description of Goods: ${formData.goods_description || 'N/A'}`);
+      doc.text(`Number of Packages: ${formData.number_of_packages || 'N/A'}`);
+      doc.text(`Gross Weight: ${formData.gross_weight || 'N/A'} kg`);
+
+    } else if (formType === 'packing_list') {
+      doc.text('PACKING LIST', { underline: true });
+      doc.moveDown();
+      doc.font('Helvetica');
+      doc.text(`Shipper Name: ${formData.shipper_name || 'N/A'}`);
+      doc.text(`Consignee Name: ${formData.consignee_name || 'N/A'}`);
+      doc.text(`Invoice Number: ${formData.invoice_number || 'N/A'}`);
+      doc.moveDown(0.5);
+      doc.text(`Description of Goods: ${formData.goods_description || 'N/A'}`);
+      doc.text(`Number of Packages: ${formData.number_of_packages || 'N/A'}`);
+      doc.text(`Net Weight: ${formData.net_weight || 'N/A'} kg`);
+      doc.text(`Gross Weight: ${formData.gross_weight || 'N/A'} kg`);
+
+    } else if (formType === 'certificate_of_origin') {
+      doc.text('CERTIFICATE OF ORIGIN', { underline: true });
+      doc.moveDown();
+      doc.font('Helvetica');
+      doc.text(`Exporter Name: ${formData.exporter_name || 'N/A'}`);
+      doc.text(`Consignee Name: ${formData.consignee_name || 'N/A'}`);
+      doc.moveDown(0.5);
+      doc.text(`Country of Origin: ${formData.country_of_origin || 'N/A'}`);
+      doc.text(`Description of Goods: ${formData.goods_description || 'N/A'}`);
+      doc.text(`HS Code: ${formData.hs_code || 'N/A'}`);
+    }
+
+    // Footer
+    doc.moveDown(3);
+    doc.fontSize(10).font('Helvetica-Oblique');
+    doc.text('This document was generated by ExportAgent AI Platform', { align: 'center' });
+    doc.text('For official use, please verify all information and obtain necessary certifications', { align: 'center' });
+
+    doc.end();
+
+    const pdfBuffer = await pdfEndPromise;
+
+    // Save to database
+    const { data: savedDoc, error: dbError } = await supabase
+      .from('documents')
+      .insert({
+        user_id: req.user.id,
+        type: formType,
+        data: formData,
+        created_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (dbError) console.error('[Export Forms] DB save error:', dbError.message);
+
+    console.log(`[Export Forms] Generated ${formType} PDF for user ${req.user.id}`);
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${formType}-${Date.now()}.pdf"`);
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error('[Export Forms Generate] Error:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
