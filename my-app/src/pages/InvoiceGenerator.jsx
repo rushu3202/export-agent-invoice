@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { FileDown, Plus, Trash2, CheckCircle, Mail, Users, Sparkles } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import axios from 'axios';
+import UpgradePrompt from '../components/UpgradePrompt';
 
 export default function InvoiceGenerator() {
   const [sellerName, setSellerName] = useState('ACME Exporters');
@@ -21,6 +22,7 @@ export default function InvoiceGenerator() {
   const [contacts, setContacts] = useState([]);
   const [selectedContact, setSelectedContact] = useState('');
   const [suggestingIndex, setSuggestingIndex] = useState(null);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(null);
 
   useEffect(() => {
     checkEmailConfig();
@@ -180,7 +182,7 @@ export default function InvoiceGenerator() {
 
       if (response.status === 402) {
         const data = await response.json();
-        setError(data.message || 'Document generation limit reached. Please upgrade to Pro plan.');
+        setShowUpgradePrompt('quota_exceeded');
         return;
       }
 
@@ -460,6 +462,13 @@ export default function InvoiceGenerator() {
           💡 HS codes will be automatically assigned using AI when generating the PDF
         </p>
       </div>
+
+      {showUpgradePrompt && (
+        <UpgradePrompt
+          reason={showUpgradePrompt}
+          onClose={() => setShowUpgradePrompt(null)}
+        />
+      )}
     </div>
   );
 }

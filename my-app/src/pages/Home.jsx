@@ -5,6 +5,8 @@ import { supabase } from '../supabaseClient';
 import axios from 'axios';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import DashboardTour from '../components/DashboardTour';
+import TrialBanner from '../components/TrialBanner';
+import UpgradePrompt from '../components/UpgradePrompt';
 
 export default function Home() {
   const [stats, setStats] = useState([
@@ -20,11 +22,32 @@ export default function Home() {
   const [usage, setUsage] = useState(null);
   const [insights, setInsights] = useState(null);
   const [showTour, setShowTour] = useState(false);
+  const [trialStatus, setTrialStatus] = useState(null);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(null);
 
   useEffect(() => {
     fetchUserStats();
     fetchInsights();
+    fetchTrialStatus();
   }, []);
+
+  const fetchTrialStatus = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const response = await axios.get('/api/trial-status', {
+        headers: { Authorization: `Bearer ${session.access_token}` }
+      });
+      setTrialStatus(response.data);
+
+      if (response.data.hasExpired) {
+        setShowUpgradePrompt('trial_expired');
+      }
+    } catch (err) {
+      console.error('Error fetching trial status:', err);
+    }
+  };
 
   const fetchInsights = async () => {
     try {
@@ -162,7 +185,14 @@ export default function Home() {
         </div>
       )}
 
-      {isFreeUser && (
+      {trialStatus && trialStatus.isActive && !trialStatus.isPro && (
+        <TrialBanner 
+          trialDaysLeft={trialStatus.daysLeft}
+          onDismiss={() => setTrialStatus({ ...trialStatus, isActive: false })}
+        />
+      )}
+
+      {isFreeUser && (!trialStatus || !trialStatus.isActive) && (
         <div className="mb-6 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
@@ -372,6 +402,14 @@ export default function Home() {
           setShowTour(false);
           fetchUserStats();
         }} />
+      )}
+
+      {showUpgradePrompt && (
+        <UpgradePrompt
+          reason={showUpgradePrompt}
+          onClose={() => setShowUpgradePrompt(null)}
+          trialDaysLeft={trialStatus?.daysLeft}
+        />
       )}
     </div>
   );

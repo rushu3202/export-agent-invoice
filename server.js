@@ -461,6 +461,51 @@ app.post('/api/complete-dashboard-tour', authenticateUser, async (req, res) => {
   }
 });
 
+app.get('/api/trial-status', authenticateUser, async (req, res) => {
+  try {
+    console.log(`[Trial Status] Checking trial for user: ${req.user.id}`);
+
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('trial_ends_at, subscription_status, created_at')
+      .eq('id', req.user.id)
+      .single();
+
+    if (error) throw error;
+
+    let trialEndsAt = data.trial_ends_at;
+
+    if (!trialEndsAt && data.created_at) {
+      const createdDate = new Date(data.created_at);
+      const trialEnd = new Date(createdDate);
+      trialEnd.setDate(trialEnd.getDate() + 7);
+      trialEndsAt = trialEnd.toISOString();
+
+      await supabase
+        .from('user_profiles')
+        .update({ trial_ends_at: trialEndsAt })
+        .eq('id', req.user.id);
+    }
+
+    const now = new Date();
+    const endDate = new Date(trialEndsAt);
+    const daysLeft = Math.max(0, Math.ceil((endDate - now) / (1000 * 60 * 60 * 24)));
+    const isActive = daysLeft > 0 && data.subscription_status === 'free';
+    const hasExpired = daysLeft === 0 && data.subscription_status === 'free';
+
+    res.json({
+      isActive,
+      hasExpired,
+      daysLeft,
+      endsAt: trialEndsAt,
+      isPro: data.subscription_status === 'pro'
+    });
+  } catch (error) {
+    console.error('[Trial Status] Error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 async function getHSCode(description) {
   if (!openai) return "000000";
   try {

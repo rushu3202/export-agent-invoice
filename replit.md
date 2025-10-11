@@ -76,6 +76,29 @@ The platform is built with a React frontend and a Node.js/Express backend.
   - Backend endpoints: /api/complete-onboarding, /api/complete-dashboard-tour
   - All authenticated with Supabase session tokens
 
+### 7-Day Free Trial System
+- **Trial Management**:
+  - Added trial_ends_at timestamp field to user_profiles
+  - Automatic trial initialization: 7 days from signup
+  - Backend endpoint: /api/trial-status (calculates days left, trial status)
+  - Trial banner shows days remaining with color-coded urgency
+  - Trial expired modal with upgrade prompt
+  
+- **Upgrade Prompts**:
+  - Beautiful modal with three variants: trial_expired, quota_exceeded, feature_locked
+  - Shows Pro plan benefits and £9.99/month pricing
+  - Integrated into invoice generator (shows when quota exceeded)
+  - Dashboard shows trial banner when trial is active
+  - Modal includes money-back guarantee and secure payment info
+  
+- **Trial Flow**:
+  1. User signs up → trial_ends_at set to 7 days from now
+  2. Dashboard shows trial banner with days left
+  3. Color-coded urgency: Blue (3+ days), Amber (1-2 days), Red (expiring today)
+  4. When trial expires → upgrade modal appears
+  5. When quota exceeded → upgrade modal appears
+  6. Pro users → no trial banner or limits
+
 ## Configuration Required
 ### Crisp Chat Setup
 1. Sign up for Crisp Chat at https://crisp.chat (free tier available)
