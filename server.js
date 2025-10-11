@@ -1395,6 +1395,313 @@ app.get('/api/usage', authenticateUser, async (req, res) => {
   }
 });
 
+// ==================== MARKETPLACE ENDPOINTS ====================
+
+// Get all marketplace listings with optional filters
+app.get('/api/marketplace/listings', async (req, res) => {
+  try {
+    const { category, country, hs_code, search, min_price, max_price } = req.query;
+    
+    let query = supabase
+      .from('marketplace_listings')
+      .select('*, user_profiles!inner(company_name, subscription_status)')
+      .eq('is_active', true);
+    
+    if (category) query = query.eq('category', category);
+    if (country) query = query.eq('country', country);
+    if (hs_code) query = query.eq('hs_code', hs_code);
+    if (search) query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
+    if (min_price) query = query.gte('price', parseFloat(min_price));
+    if (max_price) query = query.lte('price', parseFloat(max_price));
+    
+    const { data, error } = await query.order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    res.json(data || []);
+  } catch (error) {
+    console.error('[Marketplace Listings GET] Error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get single listing
+app.get('/api/marketplace/listings/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const { data, error } = await supabase
+      .from('marketplace_listings')
+      .select('*, user_profiles!inner(company_name, contact_email, subscription_status)')
+      .eq('id', id)
+      .single();
+    
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    console.error('[Marketplace Listing GET] Error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create new listing
+app.post('/api/marketplace/listings', authenticateUser, async (req, res) => {
+  try {
+    const { title, description, category, price, currency, country, hs_code, moq, image_url } = req.body;
+    
+    const { data, error } = await supabase
+      .from('marketplace_listings')
+      .insert({
+        user_id: req.user.id,
+        title,
+        description,
+        category,
+        price,
+        currency: currency || 'USD',
+        country,
+        hs_code,
+        moq,
+        image_url,
+        is_active: true
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    console.log(`[Marketplace] User ${req.user.id} created listing ${data.id}`);
+    res.json(data);
+  } catch (error) {
+    console.error('[Marketplace Listing POST] Error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update listing
+app.put('/api/marketplace/listings/:id', authenticateUser, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, description, category, price, currency, country, hs_code, moq, image_url, is_active } = req.body;
+    
+    const { data, error } = await supabase
+      .from('marketplace_listings')
+      .update({
+        title,
+        description,
+        category,
+        price,
+        currency,
+        country,
+        hs_code,
+        moq,
+        image_url,
+        is_active,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .eq('user_id', req.user.id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    console.log(`[Marketplace] User ${req.user.id} updated listing ${id}`);
+    res.json(data);
+  } catch (error) {
+    console.error('[Marketplace Listing PUT] Error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete listing
+app.delete('/api/marketplace/listings/:id', authenticateUser, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const { error } = await supabase
+      .from('marketplace_listings')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', req.user.id);
+    
+    if (error) throw error;
+    console.log(`[Marketplace] User ${req.user.id} deleted listing ${id}`);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[Marketplace Listing DELETE] Error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get user's own listings
+app.get('/api/marketplace/my-listings', authenticateUser, async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('marketplace_listings')
+      .select('*')
+      .eq('user_id', req.user.id)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    res.json(data || []);
+  } catch (error) {
+    console.error('[Marketplace My Listings GET] Error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Send message / inquiry
+app.post('/api/marketplace/messages', authenticateUser, async (req, res) => {
+  try {
+    const { listing_id, receiver_id, message } = req.body;
+    
+    const { data, error } = await supabase
+      .from('marketplace_messages')
+      .insert({
+        listing_id,
+        sender_id: req.user.id,
+        receiver_id,
+        message
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    // Create lead entry if first contact
+    const { data: existingLead } = await supabase
+      .from('marketplace_leads')
+      .select('id')
+      .eq('listing_id', listing_id)
+      .eq('buyer_id', req.user.id)
+      .single();
+    
+    if (!existingLead) {
+      await supabase
+        .from('marketplace_leads')
+        .insert({
+          listing_id,
+          exporter_id: receiver_id,
+          buyer_id: req.user.id,
+          status: 'new'
+        });
+    }
+    
+    console.log(`[Marketplace] User ${req.user.id} sent message for listing ${listing_id}`);
+    res.json(data);
+  } catch (error) {
+    console.error('[Marketplace Message POST] Error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get messages for a conversation
+app.get('/api/marketplace/messages/:listing_id/:other_user_id', authenticateUser, async (req, res) => {
+  try {
+    const { listing_id, other_user_id } = req.params;
+    
+    const { data, error } = await supabase
+      .from('marketplace_messages')
+      .select('*')
+      .eq('listing_id', listing_id)
+      .or(`and(sender_id.eq.${req.user.id},receiver_id.eq.${other_user_id}),and(sender_id.eq.${other_user_id},receiver_id.eq.${req.user.id})`)
+      .order('created_at', { ascending: true });
+    
+    if (error) throw error;
+    
+    // Mark messages as read
+    await supabase
+      .from('marketplace_messages')
+      .update({ is_read: true })
+      .eq('receiver_id', req.user.id)
+      .eq('sender_id', other_user_id);
+    
+    res.json(data || []);
+  } catch (error) {
+    console.error('[Marketplace Messages GET] Error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get user's conversations
+app.get('/api/marketplace/conversations', authenticateUser, async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('marketplace_messages')
+      .select('*, marketplace_listings(title), sender:user_profiles!sender_id(company_name), receiver:user_profiles!receiver_id(company_name)')
+      .or(`sender_id.eq.${req.user.id},receiver_id.eq.${req.user.id}`)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    
+    // Group by conversation
+    const conversations = {};
+    data?.forEach(msg => {
+      const otherUserId = msg.sender_id === req.user.id ? msg.receiver_id : msg.sender_id;
+      const key = `${msg.listing_id}-${otherUserId}`;
+      if (!conversations[key]) {
+        conversations[key] = {
+          listing_id: msg.listing_id,
+          listing_title: msg.marketplace_listings?.title,
+          other_user_id: otherUserId,
+          other_user_name: msg.sender_id === req.user.id ? msg.receiver?.company_name : msg.sender?.company_name,
+          last_message: msg.message,
+          last_message_at: msg.created_at,
+          unread_count: 0
+        };
+      }
+      if (msg.receiver_id === req.user.id && !msg.is_read) {
+        conversations[key].unread_count++;
+      }
+    });
+    
+    res.json(Object.values(conversations));
+  } catch (error) {
+    console.error('[Marketplace Conversations GET] Error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get leads for exporter
+app.get('/api/marketplace/leads', authenticateUser, async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('marketplace_leads')
+      .select('*, marketplace_listings(title, price, currency), buyer:user_profiles!buyer_id(company_name, contact_email)')
+      .eq('exporter_id', req.user.id)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    res.json(data || []);
+  } catch (error) {
+    console.error('[Marketplace Leads GET] Error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update lead status
+app.put('/api/marketplace/leads/:id', authenticateUser, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, notes } = req.body;
+    
+    const { data, error } = await supabase
+      .from('marketplace_leads')
+      .update({
+        status,
+        notes,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .eq('exporter_id', req.user.id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    console.error('[Marketplace Lead PUT] Error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.use((req, res, next) => {
   if (req.method === 'GET' && !req.path.startsWith('/api') && !req.path.includes('.')) {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));

@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Home, FileText, ClipboardList, MessageSquare, Package, Menu, X, User, LogOut, Globe, Users, Search, History } from 'lucide-react';
+import { Home, FileText, ClipboardList, MessageSquare, Package, Menu, X, User, LogOut, Globe, Users, Search, History, Store, ListTree, TrendingUp } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../supabaseClient';
@@ -51,6 +51,9 @@ export default function Layout() {
   
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
+    { name: 'B2B Marketplace', href: '/marketplace', icon: Store },
+    { name: 'My Listings', href: '/marketplace/my-listings', icon: ListTree },
+    { name: 'My Leads', href: '/marketplace/leads', icon: TrendingUp },
     { name: 'Invoice Generator', href: '/invoice', icon: FileText },
     { name: 'Invoice History', href: '/invoices', icon: History },
     { name: 'Contacts/CRM', href: '/contacts', icon: Users },

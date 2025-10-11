@@ -14,6 +14,11 @@ import ProfileBilling from './pages/ProfileBilling';
 import Pricing from './pages/Pricing';
 import Success from './pages/Success';
 import Cancel from './pages/Cancel';
+import Marketplace from './pages/Marketplace';
+import CreateListing from './pages/CreateListing';
+import MyListings from './pages/MyListings';
+import ListingDetail from './pages/ListingDetail';
+import MarketplaceLeads from './pages/MarketplaceLeads';
 import './App.css';
 
 function App() {
@@ -35,6 +40,11 @@ function App() {
           <Route path="shipment" element={<ShipmentTracker />} />
           <Route path="profile" element={<ProfileBilling />} />
           <Route path="pricing" element={<Pricing />} />
+          <Route path="marketplace" element={<Marketplace />} />
+          <Route path="marketplace/create" element={<CreateListing />} />
+          <Route path="marketplace/my-listings" element={<MyListings />} />
+          <Route path="marketplace/listing/:id" element={<ListingDetail />} />
+          <Route path="marketplace/leads" element={<MarketplaceLeads />} />
         </Route>
       </Routes>
     </BrowserRouter>
