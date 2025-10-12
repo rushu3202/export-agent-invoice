@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { Package, DollarSign, MapPin, Hash, Image as ImageIcon, Save } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import axios from 'axios';
+import { useToast } from '../components/Toast';
 
 export default function CreateListing() {
+  const toast = useToast();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -38,7 +40,7 @@ export default function CreateListing() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        alert('Please sign in to create a listing');
+        toast.error('Please sign in to create a listing');
         navigate('/login');
         return;
       }
@@ -47,11 +49,11 @@ export default function CreateListing() {
         headers: { Authorization: `Bearer ${session.access_token}` }
       });
 
-      alert('Listing created successfully!');
+      toast.success('Listing created successfully!');
       navigate('/marketplace/my-listings');
     } catch (error) {
       console.error('Error creating listing:', error);
-      alert('Error creating listing: ' + (error.response?.data?.message || error.message));
+      toast.error('Error creating listing: ' + (error.response?.data?.message || error.message));
     } finally {
       setLoading(false);
     }

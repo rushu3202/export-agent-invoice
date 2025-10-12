@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { FileText, Download, Loader, Users } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import axios from 'axios';
+import { useToast } from '../components/Toast';
 
 export default function ExportForms() {
+  const toast = useToast();
   const [contacts, setContacts] = useState([]);
   const [selectedContact, setSelectedContact] = useState('');
   const [selectedForm, setSelectedForm] = useState('');
@@ -140,7 +142,7 @@ export default function ExportForms() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        alert('Please sign in to generate documents.');
+        toast.error('Please sign in to generate documents');
         setLoading(false);
         return;
       }
@@ -164,9 +166,9 @@ export default function ExportForms() {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       if (error.response?.status === 403) {
-        alert(error.response.data.message || 'Document limit reached. Upgrade to Pro for unlimited documents.');
+        toast.error(error.response.data.message || 'Document limit reached. Upgrade to Pro for unlimited documents.');
       } else {
-        alert('Error generating form: ' + error.message);
+        toast.error('Error generating form: ' + error.message);
       }
     } finally {
       setLoading(false);

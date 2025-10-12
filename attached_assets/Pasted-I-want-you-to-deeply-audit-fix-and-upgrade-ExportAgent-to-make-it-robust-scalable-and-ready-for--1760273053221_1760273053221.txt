@@ -1,0 +1,143 @@
+I want you to deeply audit, fix, and upgrade ExportAgent to make it robust, scalable, and ready for high growth. Here’s what you must do step by step:
+
+1. Bug Fixes & Stability
+
+Audit all front-end routes (contacts, HS Finder, shipments, documents). Identify broken routes or missing API calls and fix them.
+
+Ensure every page is protected by authentication — only logged-in users can access /app/* routes.
+
+Add loading spinners / skeletons when fetching data.
+
+Add error states with user-friendly messages (e.g. “Failed to fetch contacts. Try again”).
+
+Add form validation (required fields, correct formats) on front-end and backend.
+
+Add logging (console + file or remote) for backend API errors, and display minimal friendly UI errors.
+
+2. Contacts & CRM System
+
+Backend: Create endpoints for CRUD contacts (GET, POST, PUT, DELETE) tied to the authenticated user.
+
+Frontend: Contacts page should fetch contacts on load and display in a table (name, company, email, phone).
+
+Add “Add Contact” button / modal form to create new contacts.
+
+Add “Edit” and “Delete” actions per contact row.
+
+Add search/filter by name/company.
+
+Save contact type (buyer / supplier).
+
+Export contacts as CSV / Excel.
+
+3. HS Code Finder Integration
+
+Backend: POST /api/hs-search endpoint that accepts { query: string, country: string }, calls OpenAI or a customs API, returns { hsCode, confidence, dutyRate }, stores result in hs_searches table.
+
+Frontend: HS Finder page with:
+
+Input fields: “Product description”, “Destination country”
+
+Submit button → show loading → display result (HS code, confidence, duty)
+
+Save to user search history list visible under HS Finder (past queries).
+
+If free tier limit reached, show upgrade prompt.
+
+4. Document Modules (exports, invoices, packing lists)
+
+Fix or build the document generation modules:
+
+Invoice / Proforma / Packing List / Bill of Lading templates
+
+Allow user to choose document type, fill a form, preview, and generate PDF.
+
+Save generated document metadata and link to PDF in documents table.
+
+Show history: user can list their past documents with “View / Download / Re-generate” actions.
+
+Add filtering by date or document type.
+
+5. Navigation & UI Enhancements
+
+Build a sidebar / top nav menu for “Dashboard | Contacts | HS Finder | Documents | Shipments | Settings”.
+
+Highlight active route, collapse on mobile.
+
+Make all pages responsive — test on mobile widths.
+
+Add breadcrumbs or page titles so users know where they are.
+
+Use consistent styling using Tailwind or your UI library (spacing, colors, buttons).
+
+Add global header with user name / avatar and logout link.
+
+6. Usage & Quota Logic
+
+For free-tier users:
+
+Limit number of HS searches/month
+
+Limit number of documents/month
+
+Limit access to contacts or advanced features
+
+On each API request (hs-search, document generation), check the user’s usage counter and plan before executing.
+
+Return HTTP 402 with JSON { error: "quota_exceeded", feature: "hs_search" } if they exceed.
+
+On frontend, catch that and show “Upgrade to Pro” CTA.
+
+7. Settings & User Profile
+
+Settings page:
+
+Allow user to update company information (name, address, logo)
+
+Set default currency & language
+
+Display subscription plan status & upgrade link
+
+Profile page: show user email, sign-up date, usage stats.
+
+8. Testing, Monitoring & Logging
+
+Add API tests (unit / integration) for key endpoints (contacts, hs-search, docs).
+
+Add error logging (Sentry or similar) to backend.
+
+Add frontend error boundary for React errors (fallback UI).
+
+Add monitoring or health checks (e.g. uptime monitoring).
+
+9. Documentation & Code Clean-up
+
+Refactor code to be modular, separate UI components, services, API handlers.
+
+Add inline comments and README updates.
+
+For each API endpoint, document input / output format.
+
+Add “TODO” markers for future growth points.
+
+10. Plan for Monetization & Growth
+
+After fixes: integrate Stripe plans & upgrade flows (Free / Pro / Business).
+
+Add upgrade prompts or banners on pages when user uses free limits.
+
+Add analytics hooks (Google Analytics, PostHog) to track page views, usage, conversion.
+
+Add referral / invite system later.
+
+🏁 Outcome
+
+Every section works (Contacts, HS Finder, Documents, Shipments).
+
+UI is polished, responsive, and intuitive.
+
+Quota logic ensures free vs paid boundaries.
+
+Ready to integrate monetization and growth features.
+
+App is stable, maintainable, and ready to scale.

@@ -3,8 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Package, Edit, Trash2, Plus, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import axios from 'axios';
+import { useToast } from '../components/Toast';
 
 export default function MyListings() {
+  const toast = useToast();
   const navigate = useNavigate();
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -42,7 +44,7 @@ export default function MyListings() {
       fetchMyListings();
     } catch (error) {
       console.error('Error updating listing:', error);
-      alert('Error updating listing status');
+      toast.error('Error updating listing status');
     }
   };
 
@@ -57,7 +59,7 @@ export default function MyListings() {
       fetchMyListings();
     } catch (error) {
       console.error('Error deleting listing:', error);
-      alert('Error deleting listing');
+      toast.error('Error deleting listing');
     }
   };
 

@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { Users, TrendingUp, Clock, CheckCircle, Mail } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import axios from 'axios';
+import { useToast } from '../components/Toast';
 
 export default function MarketplaceLeads() {
+  const toast = useToast();
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -38,7 +40,7 @@ export default function MarketplaceLeads() {
       fetchLeads();
     } catch (error) {
       console.error('Error updating lead:', error);
-      alert('Error updating lead status');
+      toast.error('Error updating lead status');
     }
   };
 

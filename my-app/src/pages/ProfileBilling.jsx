@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { User, CreditCard, Check, Zap, Crown, Mail, Calendar, FileText, ClipboardList, MessageSquare, ExternalLink, Shield } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import axios from 'axios';
+import { useToast } from '../components/Toast';
 
 export default function ProfileBilling() {
+  const toast = useToast();
   const [currentPlan, setCurrentPlan] = useState('free');
   const [userProfile, setUserProfile] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
@@ -63,7 +65,7 @@ export default function ProfileBilling() {
       if (authError) throw authError;
       
       if (!user) {
-        alert('Please log in to upgrade');
+        toast.error('Please log in to upgrade');
         return;
       }
 
@@ -77,7 +79,7 @@ export default function ProfileBilling() {
       }
     } catch (err) {
       console.error('Error creating checkout session:', err);
-      alert('Failed to start checkout. Please try again.');
+      toast.error('Failed to start checkout. Please try again.');
     } finally {
       setProcessingCheckout(false);
     }
@@ -86,7 +88,7 @@ export default function ProfileBilling() {
   const handleManageBilling = async () => {
     try {
       if (!userProfile || !userProfile.stripe_customer_id) {
-        alert('No billing information found. Please upgrade first.');
+        toast.warning('No billing information found. Please upgrade first.');
         return;
       }
 
@@ -97,7 +99,7 @@ export default function ProfileBilling() {
       }
     } catch (err) {
       console.error('Error opening billing portal:', err);
-      alert('Failed to open billing portal. Please try again.');
+      toast.error('Failed to open billing portal. Please try again.');
     }
   };
 

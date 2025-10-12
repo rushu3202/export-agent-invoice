@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { FileText, Download, Eye, Calendar, DollarSign, Filter, Search } from 'lucide-react';
 import { supabase } from '../supabaseClient';
+import { useToast } from '../components/Toast';
 import * as XLSX from 'xlsx';
 
 export default function InvoiceHistory() {
+  const toast = useToast();
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -19,7 +21,7 @@ export default function InvoiceHistory() {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        alert('Please log in to view invoice history');
+        toast.error('Please log in to view invoice history');
         return;
       }
 
@@ -62,7 +64,7 @@ export default function InvoiceHistory() {
       setInvoices(combinedInvoices);
     } catch (error) {
       console.error('Error fetching invoices:', error);
-      alert('Failed to load invoice history');
+      toast.error('Failed to load invoice history. Please try again.');
     } finally {
       setLoading(false);
     }

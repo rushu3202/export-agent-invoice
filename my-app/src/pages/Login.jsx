@@ -2,8 +2,10 @@ import { useState } from 'react'
 import { supabase } from '../supabaseClient'
 import { useNavigate } from 'react-router-dom'
 import { Globe } from 'lucide-react'
+import { useToast } from '../components/Toast'
 
 export default function Login() {
+  const toast = useToast()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSignUp, setIsSignUp] = useState(false)
@@ -32,7 +34,7 @@ export default function Login() {
           })
         }
         
-        alert('Check your email for confirmation link!')
+        toast.success('Check your email for confirmation link!')
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,

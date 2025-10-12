@@ -3,8 +3,10 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useToast } from '../components/Toast';
 
 export default function Pricing() {
+  const toast = useToast();
   const [loading, setLoading] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
   const navigate = useNavigate();
@@ -50,7 +52,7 @@ export default function Pricing() {
       }
     } catch (error) {
       console.error('Error creating checkout session:', error);
-      alert('Failed to start checkout. Please try again.');
+      toast.error('Failed to start checkout. Please try again.');
     } finally {
       setLoading(false);
     }

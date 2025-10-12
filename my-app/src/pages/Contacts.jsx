@@ -1,16 +1,20 @@
 import { useState, useEffect } from 'react';
 import { Users, Plus, Edit2, Trash2, Download, Mail, Phone, Building, X, Search } from 'lucide-react';
 import { supabase } from '../supabaseClient';
+import { useToast } from '../components/Toast';
+import ConfirmDialog from '../components/ConfirmDialog';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
 
 export default function Contacts() {
+  const toast = useToast();
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingContact, setEditingContact] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [formData, setFormData] = useState({
     type: 'buyer',
     name: '',
@@ -34,7 +38,7 @@ export default function Contacts() {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        alert('Please log in to view contacts');
+        toast.error('Please log in to view contacts');
         return;
       }
 
@@ -46,7 +50,7 @@ export default function Contacts() {
       setContacts(response.data || []);
     } catch (error) {
       console.error('Error fetching contacts:', error);
-      alert('Failed to load contacts');
+      toast.error('Failed to load contacts. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -58,7 +62,7 @@ export default function Contacts() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        alert('Please log in');
+        toast.error('Please log in');
         return;
       }
 
@@ -78,14 +82,20 @@ export default function Contacts() {
       setEditingContact(null);
       resetForm();
       fetchContacts();
+      toast.success(editingContact ? 'Contact updated successfully!' : 'Contact added successfully!');
     } catch (error) {
       console.error('Error saving contact:', error);
-      alert(error.response?.data?.message || 'Failed to save contact');
+      toast.error(error.response?.data?.message || 'Failed to save contact. Please try again.');
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('Are you sure you want to delete this contact?')) return;
+  const handleDelete = (id) => {
+    setDeleteConfirm(id);
+  };
+
+  const confirmDelete = async () => {
+    const id = deleteConfirm;
+    setDeleteConfirm(null);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -97,9 +107,10 @@ export default function Contacts() {
       });
 
       fetchContacts();
+      toast.success('Contact deleted successfully');
     } catch (error) {
       console.error('Error deleting contact:', error);
-      alert('Failed to delete contact');
+      toast.error('Failed to delete contact. Please try again.');
     }
   };
 
@@ -402,6 +413,18 @@ export default function Contacts() {
             </form>
           </div>
         </div>
+      )}
+
+      {deleteConfirm && (
+        <ConfirmDialog
+          title="Delete Contact"
+          message="Are you sure you want to delete this contact? This action cannot be undone."
+          onConfirm={confirmDelete}
+          onCancel={() => setDeleteConfirm(null)}
+          confirmText="Delete"
+          cancelText="Cancel"
+          type="danger"
+        />
       )}
     </div>
   );

@@ -3,8 +3,10 @@ import { useParams } from 'react-router-dom';
 import { MapPin, DollarSign, Package, Hash, MessageSquare, CheckCircle, Send } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import axios from 'axios';
+import { useToast } from '../components/Toast';
 
 export default function ListingDetail() {
+  const toast = useToast();
   const { id } = useParams();
   const [listing, setListing] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -35,7 +37,7 @@ export default function ListingDetail() {
 
   const sendInquiry = async () => {
     if (!message.trim()) {
-      alert('Please enter a message');
+      toast.warning('Please enter a message');
       return;
     }
 
@@ -43,7 +45,7 @@ export default function ListingDetail() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        alert('Please sign in to send inquiries');
+        toast.error('Please sign in to send inquiries');
         return;
       }
 
@@ -55,11 +57,11 @@ export default function ListingDetail() {
         headers: { Authorization: `Bearer ${session.access_token}` }
       });
 
-      alert('Inquiry sent successfully! The seller will contact you soon.');
+      toast.success('Inquiry sent successfully! The seller will contact you soon.');
       setMessage('');
     } catch (error) {
       console.error('Error sending inquiry:', error);
-      alert('Error sending inquiry: ' + (error.response?.data?.message || error.message));
+      toast.error('Error sending inquiry: ' + (error.response?.data?.message || error.message));
     } finally {
       setSending(false);
     }
