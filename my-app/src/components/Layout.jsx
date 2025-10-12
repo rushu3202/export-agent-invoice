@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Home, FileText, ClipboardList, MessageSquare, Package, Menu, X, User, LogOut, Globe, Users, Search, History, Store, ListTree, TrendingUp, Settings as SettingsIcon } from 'lucide-react';
+import { Home, FileText, ClipboardList, MessageSquare, Package, Menu, X, User, LogOut, Globe, Users, Search, History, Store, ListTree, TrendingUp, Settings as SettingsIcon, FileStack } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../supabaseClient';
@@ -73,6 +73,7 @@ export default function Layout() {
     { name: 'HS Code Finder', href: '/app/hs-finder', icon: Search },
     { name: 'Shipment Tracker', href: '/app/shipment', icon: Package },
     { name: 'Export Forms', href: '/app/export-forms', icon: ClipboardList },
+    { name: 'Forms History', href: '/app/export-forms-history', icon: FileStack },
     { name: 'AI Chat Assistant', href: '/app/chat', icon: MessageSquare },
     { name: 'Settings', href: '/app/settings', icon: SettingsIcon },
     { name: 'Profile & Billing', href: '/app/profile', icon: User },

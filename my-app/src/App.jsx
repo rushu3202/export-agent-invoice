@@ -22,6 +22,7 @@ import CreateListing from './pages/CreateListing';
 import MyListings from './pages/MyListings';
 import ListingDetail from './pages/ListingDetail';
 import MarketplaceLeads from './pages/MarketplaceLeads';
+import ExportFormsHistory from './pages/ExportFormsHistory';
 import './App.css';
 
 function App() {
@@ -41,6 +42,7 @@ function App() {
           <Route path="contacts" element={<Contacts />} />
           <Route path="hs-finder" element={<HSFinder />} />
           <Route path="export-forms" element={<ExportForms />} />
+          <Route path="export-forms-history" element={<ExportFormsHistory />} />
           <Route path="chat" element={<AIChatAssistant />} />
           <Route path="shipment" element={<ShipmentTracker />} />
           <Route path="profile" element={<ProfileBilling />} />
