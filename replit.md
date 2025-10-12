@@ -40,7 +40,49 @@ The platform is built with a React frontend and a Node.js/Express backend.
 - **OpenAI**: Powers AI features such as HS code assignment, expert chat assistance (GPT-4-mini), and AI-guided form filling.
 - **Crisp Chat**: Live chat widget for 24/7 customer support (requires setup - see Configuration below).
 
-## Recent Updates - Sprint 1: Marketing & Conversion (October 2025)
+## Recent Updates - Production Audit & Optimization (October 2025)
+
+### Platform Hardening - Completed Tasks (3/10)
+
+**Task 1: Professional Toast Notification System** ✅
+- Created comprehensive Toast component library (ToastProvider with useToast hook)
+- 4 toast types: success, error, warning, info with beautiful gradient design
+- Timer cleanup with useEffect (prevents memory leaks)
+- Monotonic ID generation (prevents collisions)
+- Mobile responsive positioning (left-4 right-4 on mobile, right-4 on desktop)
+- Replaced all 19 alert() calls across 10 pages with professional toasts
+- Created ConfirmDialog component to replace blocking confirm() dialogs
+- Non-blocking modals with backdrop blur and animations
+
+**Task 2: Loading Skeletons** ✅
+- Built LoadingSkeleton component library with 6 skeleton types:
+  - TableSkeleton (dynamic columns with inline CSS Grid)
+  - CardSkeleton (responsive card grids)
+  - ListSkeleton (list with avatars)
+  - FormSkeleton (form fields)
+  - StatsSkeleton (gradient stats cards)
+  - SearchResultSkeleton (search results with badges)
+- Integrated across 6 data-fetching pages (Contacts, HS Finder, Export Forms, Invoice History, Dashboard, Marketplace)
+- Smooth transitions from skeleton → actual content
+- Professional loading UX replaces generic spinners
+
+**Task 3: Upgrade Prompt Integration** ✅
+- Integrated UpgradePrompt modal into HS Finder and Export Forms (matching Invoice Generator)
+- Shows beautiful upgrade modal when quota limits reached (402/403 status)
+- Consistent upgrade flow across all quota-limited features
+- Clear CTAs to Pro plan with benefits and pricing
+- Non-blocking modals with "Maybe Later" option
+
+### Pending Audit Tasks (7/10)
+4. Form validation (frontend + backend) with visual error indicators
+5. Settings page (company info, currency/language, subscription display)
+6. React error boundary with fallback UI
+7. Reusable UI components library expansion
+8. ShipmentTracker authenticated API refactor
+9. Document history page with filtering
+10. Analytics integration (Google Analytics or PostHog)
+
+## Sprint 1: Marketing & Conversion (October 2025)
 ### High-Converting Landing Page
 - **Professional Landing Page**: Animated hero section with ship + world map animations, clear USP
 - **Conversion Elements**: Multiple CTAs (Start Free, Book Demo, Upgrade), trust badges, testimonials
