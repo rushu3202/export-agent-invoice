@@ -91,8 +91,26 @@ The platform is built with a React frontend and a Node.js/Express backend.
 - Integrated into Contacts form with complete validation flow
 - Frontend/backend validation synchronized for consistent user experience
 
-### Pending Audit Tasks (6/10)
-5. Settings page (company info, currency/language, subscription display)
+**Task 5: Settings Page** ✅
+- Built comprehensive Settings page with three-tab interface:
+  - **Company Info Tab**: Validated form for company name, address, industry, business type, contact email
+  - **Preferences Tab**: Currency (8 currencies) and Language (8 languages) selection
+  - **Subscription Tab**: Current plan display, upgrade CTAs, Stripe billing portal integration
+- Database schema updates:
+  - Added currency VARCHAR(10) DEFAULT 'USD'
+  - Added language VARCHAR(10) DEFAULT 'en'
+- Backend PUT /api/user-profile endpoint:
+  - Whitelist approach for security (allowed fields only)
+  - Updates company info, currency, language preferences
+  - Authenticated with Supabase session tokens
+- UI/UX features:
+  - Professional tabbed navigation with icons
+  - Loading and saving states
+  - Trial status display for free users
+  - Integration with Stripe customer portal for subscription management
+- Added Settings link to sidebar navigation
+
+### Pending Audit Tasks (5/10)
 6. React error boundary with fallback UI
 7. Reusable UI components library expansion
 8. ShipmentTracker authenticated API refactor
