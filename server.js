@@ -974,26 +974,52 @@ app.post('/export-forms', async (req, res) => {
   }
 });
 
-app.post('/track', async (req, res) => {
+app.post('/api/track-shipment', authenticateUser, async (req, res) => {
   try {
     const { trackingNumber, carrier } = req.body;
 
+    if (!trackingNumber || !trackingNumber.trim()) {
+      return res.status(400).json({ error: 'Tracking number is required' });
+    }
+
     const mockStatus = {
-      trackingNumber,
+      trackingNumber: trackingNumber.trim(),
       carrier: carrier || 'DHL Express',
       status: 'In Transit',
       location: 'Dubai, UAE',
       estimatedDelivery: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toLocaleDateString(),
       updates: [
-        { date: new Date().toLocaleDateString(), status: 'Package in transit', location: 'Dubai, UAE' },
-        { date: new Date(Date.now() - 24 * 60 * 60 * 1000).toLocaleDateString(), status: 'Customs cleared', location: 'Mumbai, India' },
-        { date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toLocaleDateString(), status: 'Picked up', location: 'Mumbai, India' }
-      ]
+        { event: 'Package in transit', date: new Date().toLocaleDateString(), location: 'Dubai, UAE' },
+        { event: 'Customs cleared', date: new Date(Date.now() - 24 * 60 * 60 * 1000).toLocaleDateString(), location: 'Mumbai, India' },
+        { event: 'Picked up', date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toLocaleDateString(), location: 'Mumbai, India' }
+      ],
+      message: 'This is simulated tracking data. In production, integrate with shipping carrier APIs.'
     };
+
+    const { data: shipment, error: shipmentError } = await supabase
+      .from('shipments')
+      .insert({
+        user_id: req.user.id,
+        reference: trackingNumber.trim(),
+        status: 'tracked',
+        metadata: {
+          carrier: mockStatus.carrier,
+          tracking_data: mockStatus,
+          tracked_at: new Date().toISOString()
+        }
+      })
+      .select()
+      .single();
+
+    if (shipmentError) {
+      console.error('[Tracking] Error saving tracking history:', shipmentError.message);
+    } else {
+      console.log(`[Tracking] Saved tracking query ${shipment.id} for user ${req.user.id}`);
+    }
 
     res.json(mockStatus);
   } catch (error) {
-    console.error('Tracking error:', error);
+    console.error('[Tracking] Error:', error);
     res.status(500).json({ error: error.message });
   }
 });

@@ -1,33 +1,50 @@
 import { useState } from 'react';
 import { Package, Search, Truck, Ship, Plane, CheckCircle, Loader } from 'lucide-react';
+import { supabase } from '../supabaseClient';
+import { useToast } from '../components/Toast';
 
 export default function ShipmentTracker() {
   const [trackingNumber, setTrackingNumber] = useState('');
   const [trackingData, setTrackingData] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const { showToast } = useToast();
 
   const handleTrack = async (e) => {
     e.preventDefault();
-    if (!trackingNumber.trim()) return;
+    if (!trackingNumber.trim()) {
+      showToast('Please enter a tracking number', 'warning');
+      return;
+    }
 
     setLoading(true);
-    setError('');
     setTrackingData(null);
 
     try {
-      const response = await fetch('/track', {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        showToast('Please log in to track shipments', 'error');
+        return;
+      }
+
+      const response = await fetch('/api/track-shipment', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
         body: JSON.stringify({ trackingNumber: trackingNumber.trim() }),
       });
 
-      if (!response.ok) throw new Error('Failed to track shipment');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to track shipment');
+      }
 
       const data = await response.json();
       setTrackingData(data);
+      showToast('Shipment tracked successfully', 'success');
     } catch (err) {
-      setError('Unable to track shipment. Please check your tracking number and try again.');
+      showToast(err.message || 'Unable to track shipment. Please try again.', 'error');
     } finally {
       setLoading(false);
     }
@@ -70,12 +87,6 @@ export default function ShipmentTracker() {
         </div>
       )}
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-          <p className="text-red-800">{error}</p>
-        </div>
-      )}
-
       {trackingData && !loading && (
         <div className="bg-white rounded-lg shadow-lg p-6">
           <div className="mb-6">
@@ -112,7 +123,7 @@ export default function ShipmentTracker() {
         </div>
       )}
 
-      {!trackingData && !loading && !error && (
+      {!trackingData && !loading && (
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-8 text-center">
           <Package className="w-16 h-16 text-blue-600 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-gray-900 mb-2">Enter a tracking number to get started</h3>
