@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { FileText, Download, Loader, Users } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { FormSkeleton } from '../components/LoadingSkeleton';
+import UpgradePrompt from '../components/UpgradePrompt';
 import axios from 'axios';
 import { useToast } from '../components/Toast';
 
@@ -14,6 +15,7 @@ export default function ExportForms() {
   const [aiResponse, setAiResponse] = useState('');
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(null);
 
   const forms = [
     { value: 'shipping_bill', label: 'Shipping Bill', description: 'Required for customs clearance' },
@@ -128,8 +130,8 @@ export default function ExportForms() {
 
       setAiResponse(response.data.suggestion || 'Please fill in the form fields above.');
     } catch (error) {
-      if (error.response?.status === 403) {
-        setAiResponse(error.response.data.message || 'AI query limit reached. Upgrade to Pro for unlimited access.');
+      if (error.response?.status === 403 || error.response?.status === 402) {
+        setShowUpgradePrompt('quota_exceeded');
       } else {
         setAiResponse('AI assistance is currently unavailable. Please fill the form manually.');
       }
@@ -166,8 +168,8 @@ export default function ExportForms() {
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      if (error.response?.status === 403) {
-        toast.error(error.response.data.message || 'Document limit reached. Upgrade to Pro for unlimited documents.');
+      if (error.response?.status === 403 || error.response?.status === 402) {
+        setShowUpgradePrompt('quota_exceeded');
       } else {
         toast.error('Error generating form: ' + error.message);
       }
@@ -307,6 +309,13 @@ export default function ExportForms() {
           )}
         </div>
       </div>
+
+      {showUpgradePrompt && (
+        <UpgradePrompt
+          reason={showUpgradePrompt}
+          onClose={() => setShowUpgradePrompt(null)}
+        />
+      )}
     </div>
   );
 }

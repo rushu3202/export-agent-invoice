@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Search, History, MapPin, Package, TrendingUp, AlertCircle } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { SearchResultSkeleton } from '../components/LoadingSkeleton';
+import UpgradePrompt from '../components/UpgradePrompt';
 import axios from 'axios';
 
 export default function HSFinder() {
@@ -12,6 +13,7 @@ export default function HSFinder() {
   const [error, setError] = useState('');
   const [searchHistory, setSearchHistory] = useState([]);
   const [usage, setUsage] = useState(null);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(null);
 
   useEffect(() => {
     fetchSearchHistory();
@@ -85,7 +87,7 @@ export default function HSFinder() {
     } catch (err) {
       console.error('HS Search error:', err);
       if (err.response?.status === 402) {
-        setError(err.response.data.message || 'HS code search limit reached. Please upgrade to Pro plan.');
+        setShowUpgradePrompt('quota_exceeded');
       } else {
         setError(err.response?.data?.error || 'Failed to search HS code. Please try again.');
       }
@@ -294,6 +296,13 @@ export default function HSFinder() {
           </div>
         </div>
       </div>
+
+      {showUpgradePrompt && (
+        <UpgradePrompt
+          reason={showUpgradePrompt}
+          onClose={() => setShowUpgradePrompt(null)}
+        />
+      )}
     </div>
   );
 }
