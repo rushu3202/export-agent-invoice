@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Filter, MapPin, DollarSign, Package, CheckCircle } from 'lucide-react';
+import { CardSkeleton } from '../components/LoadingSkeleton';
 import axios from 'axios';
 
 export default function Marketplace() {
@@ -179,10 +180,7 @@ export default function Marketplace() {
 
       {/* Listings Grid */}
       {loading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="text-gray-600 mt-4">Loading marketplace...</p>
-        </div>
+        <CardSkeleton count={6} />
       ) : listings.length === 0 ? (
         <div className="bg-gray-50 rounded-2xl p-12 text-center">
           <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />

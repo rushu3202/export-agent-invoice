@@ -3,6 +3,7 @@ import { Users, Plus, Edit2, Trash2, Download, Mail, Phone, Building, X, Search 
 import { supabase } from '../supabaseClient';
 import { useToast } from '../components/Toast';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { TableSkeleton } from '../components/LoadingSkeleton';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
 
@@ -218,10 +219,7 @@ export default function Contacts() {
       </div>
 
       {loading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="text-gray-600 mt-4">Loading contacts...</p>
-        </div>
+        <TableSkeleton rows={5} columns={5} />
       ) : filteredContacts.length === 0 ? (
         <div className="bg-white rounded-2xl shadow-md p-12 text-center border border-gray-100">
           <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />

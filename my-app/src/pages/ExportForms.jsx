@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FileText, Download, Loader, Users } from 'lucide-react';
 import { supabase } from '../supabaseClient';
+import { FormSkeleton } from '../components/LoadingSkeleton';
 import axios from 'axios';
 import { useToast } from '../components/Toast';
 
@@ -287,8 +288,11 @@ export default function ExportForms() {
             <span className="text-2xl">🤖</span> AI Assistance
           </h3>
           {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader className="w-8 h-8 text-primary animate-spin" />
+            <div className="bg-white rounded-xl p-4 shadow-sm animate-pulse">
+              <div className="h-4 bg-gray-200 rounded w-3/4 mb-3"></div>
+              <div className="h-4 bg-gray-200 rounded w-full mb-3"></div>
+              <div className="h-4 bg-gray-200 rounded w-5/6 mb-3"></div>
+              <div className="h-4 bg-gray-200 rounded w-2/3"></div>
             </div>
           ) : aiResponse ? (
             <div className="bg-white rounded-xl p-4 shadow-sm">

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search, History, MapPin, Package, TrendingUp, AlertCircle } from 'lucide-react';
 import { supabase } from '../supabaseClient';
+import { SearchResultSkeleton } from '../components/LoadingSkeleton';
 import axios from 'axios';
 
 export default function HSFinder() {
@@ -194,6 +195,10 @@ export default function HSFinder() {
               </button>
             </form>
           </div>
+
+          {loading && !result && (
+            <SearchResultSkeleton count={1} />
+          )}
 
           {result && (
             <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">

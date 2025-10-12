@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { FileText, Download, Eye, Calendar, DollarSign, Filter, Search } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useToast } from '../components/Toast';
+import { TableSkeleton } from '../components/LoadingSkeleton';
 import * as XLSX from 'xlsx';
 
 export default function InvoiceHistory() {
@@ -188,10 +189,7 @@ export default function InvoiceHistory() {
       </div>
 
       {loading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="text-gray-600 mt-4">Loading invoices...</p>
-        </div>
+        <TableSkeleton rows={8} columns={6} />
       ) : filteredInvoices.length === 0 ? (
         <div className="bg-white rounded-2xl shadow-md p-12 text-center border border-gray-100">
           <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />

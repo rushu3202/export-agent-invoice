@@ -7,6 +7,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import DashboardTour from '../components/DashboardTour';
 import TrialBanner from '../components/TrialBanner';
 import UpgradePrompt from '../components/UpgradePrompt';
+import { StatsSkeleton } from '../components/LoadingSkeleton';
 
 export default function Home() {
   const [stats, setStats] = useState([
@@ -216,18 +217,16 @@ export default function Home() {
         </p>
       </div>
 
-      <div id="stats-section" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+      <div id="stats-section" className="mb-10">
         {loading ? (
-          <div className="col-span-4 text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-            <p className="text-gray-600 mt-4">Loading stats...</p>
-          </div>
+          <StatsSkeleton count={4} />
         ) : error ? (
-          <div className="col-span-4 text-center py-12 bg-red-50 rounded-2xl">
+          <div className="text-center py-12 bg-red-50 rounded-2xl">
             <p className="text-red-600">{error}</p>
           </div>
         ) : (
-          stats.map((stat) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {stats.map((stat) => (
             <Link
               key={stat.name}
               to={stat.href}
@@ -243,7 +242,8 @@ export default function Home() {
                 </div>
               </div>
             </Link>
-          ))
+          ))}
+          </div>
         )}
       </div>
 
