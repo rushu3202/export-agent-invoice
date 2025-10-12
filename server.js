@@ -452,6 +452,48 @@ app.get('/api/user-profile', authenticateUser, async (req, res) => {
   }
 });
 
+app.put('/api/user-profile', authenticateUser, async (req, res) => {
+  try {
+    console.log(`[User Profile] Updating profile for user: ${req.user.id}`);
+    
+    const allowedFields = [
+      'company_name', 'company_address', 'industry', 'business_type', 
+      'contact_email', 'currency', 'language'
+    ];
+    
+    const updates = {};
+    allowedFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        updates[field] = req.body[field];
+      }
+    });
+    
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ error: 'No valid fields to update' });
+    }
+
+    updates.updated_at = new Date().toISOString();
+
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .update(updates)
+      .eq('id', req.user.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[User Profile] Update error:', error);
+      throw error;
+    }
+
+    console.log(`[User Profile] Successfully updated for user: ${req.user.id}`);
+    res.json({ success: true, profile: data });
+  } catch (error) {
+    console.error('[User Profile] Error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.post('/api/complete-onboarding', authenticateUser, async (req, res) => {
   try {
     console.log(`[Onboarding] Completing onboarding for user: ${req.user.id}`);

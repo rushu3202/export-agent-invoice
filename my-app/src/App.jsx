@@ -13,6 +13,7 @@ import ExportForms from './pages/ExportForms';
 import AIChatAssistant from './pages/AIChatAssistant';
 import ShipmentTracker from './pages/ShipmentTracker';
 import ProfileBilling from './pages/ProfileBilling';
+import Settings from './pages/Settings';
 import Pricing from './pages/Pricing';
 import Success from './pages/Success';
 import Cancel from './pages/Cancel';
@@ -43,6 +44,7 @@ function App() {
           <Route path="chat" element={<AIChatAssistant />} />
           <Route path="shipment" element={<ShipmentTracker />} />
           <Route path="profile" element={<ProfileBilling />} />
+          <Route path="settings" element={<Settings />} />
           <Route path="pricing" element={<Pricing />} />
           <Route path="marketplace" element={<Marketplace />} />
           <Route path="marketplace/create" element={<CreateListing />} />
