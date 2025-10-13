@@ -1,0 +1,74 @@
+PROJECT AUDIT & FULL REBUILD — EXPORTAGENT LTD
+Goal: Turn ExportAgent into a polished, fully functional export SaaS platform ready for paid users and high scale.
+
+Tasks (complete the following)
+
+Full Feature Audit & Error Logging
+ • Crawl all routes: /, /login, /app/contacts, /app/hs-finder, /app/export-forms, /app/invoices, etc.
+ • Log and list broken pages or “blank / not found” UI.
+ • Add health endpoint /health returning service status for backend dependencies (OpenAI, Stripe, DB).
+ • Add server-side error logging (console or Sentry) and frontend error boundaries.
+
+Contacts / CRM Module
+ • Implement full CRUD contacts (backend + frontend) tied to user account.
+ • UI: list view, add / edit / delete forms, search filter.
+ • Quota enforcement for free vs paid plan.
+
+HS Code Finder
+ • Add API endpoint to accept product + country → return HS code, confidence, duty.
+ • UI form to input and get result + save history.
+ • Enforce usage limits per plan.
+
+Document / Export Forms Module
+ • Build or fix modules: invoice, packing list, proforma, certificate of origin.
+ • UI to select type, input details, preview & generate PDF.
+ • Save document metadata and history.
+ • Download / email / reprint options.
+
+Navigation, UI & Styling
+ • Uniform header + sidebar menu for Dashboard, Contacts, HS Finder, Documents, Shipments, Settings.
+ • Active link highlight, breadcrumbs.
+ • Responsive layout for mobile and desktop.
+ • Loading spinners, skeletons, error messages on UI.
+
+Settings & Company Info
+ • Settings page to allow user to enter/edit: company name, address, logo, default currency, VAT number.
+ • These settings should reflect in invoices, footer, documents.
+
+Quota / Usage Limits & Plan Logic
+ • Enforce limits in backend (contacts, hs searches, docs) per user’s plan.
+ • Return clear error codes (e.g. 402 “quota_exceeded”) if over limit.
+ • Frontend must detect that and show “Upgrade” banner or message.
+
+Authentication & Route Protection
+ • All /app/* routes should require login. If not authenticated, redirect to login.
+ • Protect APIs: reject requests with no token or invalid token.
+
+Health & Monitoring
+ • Add a /health endpoint to check dependencies.
+ • Add error logging / monitoring for backend (Sentry or custom).
+
+Testing & QA
+ • Write tests for contact APIs, HS Finder, document APIs.
+ • UI tests: add / edit / delete contacts, HS search, document generation.
+ • Edge cases: no data, invalid input, API failure.
+
+Documentation & Clean Architecture
+ • Refactor code into modular layers (frontend components, API services, backend controllers).
+ • Add comments, write README updates.
+ • Document API endpoints: input/output, error codes.
+
+Polish & Brand Trust
+ • Add footer with company info on all pages (public + app)
+ • Add Terms, Privacy, Contact pages
+ • Add trust badges, load speed improvements
+
+Deliverable & Testing
+
+After implementation, run a full manual QA: test every feature.
+
+Provide a “bug report list” with fixed / remaining issues.
+
+Provide instructions to test: contacts, HS Finder, document generation, settings.
+
+Outcome: Every feature works, UI is polished and responsive, plan limits enforced, error states handled, and the app looks like a professional SaaS you can charge for.

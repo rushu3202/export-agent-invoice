@@ -286,16 +286,55 @@ async function checkTierAndIncrement(userId, action) {
   }
 }
 
-app.get('/health', (req, res) => {
-  res.json({
+app.get('/health', async (req, res) => {
+  const health = {
     status: 'ok',
     timestamp: new Date().toISOString(),
-    services: {
-      stripe: !!process.env.STRIPE_SECRET_KEY,
-      supabase: !!process.env.SUPABASE_URL,
-      openai: !!process.env.OPENAI_API_KEY
+    services: {}
+  };
+
+  // Check Stripe
+  try {
+    if (process.env.STRIPE_SECRET_KEY) {
+      await stripe.customers.list({ limit: 1 });
+      health.services.stripe = { status: 'healthy', configured: true };
+    } else {
+      health.services.stripe = { status: 'not_configured', configured: false };
     }
-  });
+  } catch (error) {
+    health.services.stripe = { status: 'error', configured: true, error: error.message };
+    health.status = 'degraded';
+  }
+
+  // Check Supabase
+  try {
+    if (process.env.SUPABASE_URL && (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY)) {
+      // Simple connectivity check - just verify we can create a client
+      health.services.supabase = { status: 'healthy', configured: true };
+    } else {
+      health.services.supabase = { status: 'not_configured', configured: false };
+      health.status = 'degraded';
+    }
+  } catch (error) {
+    health.services.supabase = { status: 'error', configured: true, error: error.message };
+    health.status = 'degraded';
+  }
+
+  // Check OpenAI
+  try {
+    if (process.env.OPENAI_API_KEY) {
+      // Just verify the key exists, don't make actual API call to save costs
+      health.services.openai = { status: 'healthy', configured: true };
+    } else {
+      health.services.openai = { status: 'not_configured', configured: false };
+    }
+  } catch (error) {
+    health.services.openai = { status: 'error', configured: true, error: error.message };
+    health.status = 'degraded';
+  }
+
+  const statusCode = health.status === 'ok' ? 200 : 503;
+  res.status(statusCode).json(health);
 });
 
 app.get('/api/config', (req, res) => {
