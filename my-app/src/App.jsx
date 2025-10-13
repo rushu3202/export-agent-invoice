@@ -25,6 +25,9 @@ import MyListings from './pages/MyListings';
 import ListingDetail from './pages/ListingDetail';
 import MarketplaceLeads from './pages/MarketplaceLeads';
 import ExportFormsHistory from './pages/ExportFormsHistory';
+import Terms from './pages/Terms';
+import Privacy from './pages/Privacy';
+import Contact from './pages/Contact';
 import './App.css';
 
 function App() {
@@ -36,6 +39,9 @@ function App() {
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/contact" element={<Contact />} />
         <Route path="/success" element={<ProtectedRoute><Success /></ProtectedRoute>} />
         <Route path="/cancel" element={<ProtectedRoute><Cancel /></ProtectedRoute>} />
         <Route path="/app" element={<ProtectedRoute><Layout /></ProtectedRoute>}>

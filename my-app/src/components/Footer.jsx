@@ -1,4 +1,5 @@
 import { Mail, Linkedin, Instagram } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export default function Footer() {
   return (
@@ -43,7 +44,20 @@ export default function Footer() {
             </a>
           </div>
 
-          <div className="border-t border-gray-700 pt-4">
+          <div className="border-t border-gray-700 pt-4 pb-4">
+            <div className="flex flex-wrap items-center justify-center gap-4 mb-3">
+              <Link to="/terms" className="text-sm text-gray-400 hover:text-white transition-colors">
+                Terms & Conditions
+              </Link>
+              <span className="text-gray-600">•</span>
+              <Link to="/privacy" className="text-sm text-gray-400 hover:text-white transition-colors">
+                Privacy Policy
+              </Link>
+              <span className="text-gray-600">•</span>
+              <Link to="/contact" className="text-sm text-gray-400 hover:text-white transition-colors">
+                Contact Us
+              </Link>
+            </div>
             <p className="text-xs text-gray-500">
               © {new Date().getFullYear()} ExportAgent Ltd. All rights reserved.
             </p>

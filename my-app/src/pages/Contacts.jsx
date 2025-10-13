@@ -3,6 +3,7 @@ import { Users, Plus, Edit2, Trash2, Download, Mail, Phone, Building, X, Search 
 import { supabase } from '../supabaseClient';
 import { useToast } from '../components/Toast';
 import ConfirmDialog from '../components/ConfirmDialog';
+import UpgradePrompt from '../components/UpgradePrompt';
 import { TableSkeleton } from '../components/LoadingSkeleton';
 import ValidatedInput, { ValidatedSelect } from '../components/ValidatedInput';
 import { validators, useFormValidation } from '../utils/validation';
@@ -25,6 +26,7 @@ export default function Contacts() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(null);
   
   const {
     values: formData,
@@ -106,7 +108,10 @@ export default function Contacts() {
       toast.success(editingContact ? 'Contact updated successfully!' : 'Contact added successfully!');
     } catch (error) {
       console.error('Error saving contact:', error);
-      if (error.response?.data?.details) {
+      if (error.response?.status === 402) {
+        setShowModal(false);
+        setShowUpgradePrompt('quota_exceeded');
+      } else if (error.response?.data?.details) {
         error.response.data.details.forEach(msg => toast.error(msg));
       } else {
         toast.error(error.response?.data?.message || 'Failed to save contact. Please try again.');
@@ -435,6 +440,13 @@ export default function Contacts() {
           confirmText="Delete"
           cancelText="Cancel"
           type="danger"
+        />
+      )}
+
+      {showUpgradePrompt && (
+        <UpgradePrompt 
+          feature="contacts"
+          onClose={() => setShowUpgradePrompt(null)}
         />
       )}
     </div>

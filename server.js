@@ -248,13 +248,20 @@ async function checkTierAndIncrement(userId, action) {
       month_yyyy: currentMonth,
       docs_created: 0,
       hs_searches: 0,
-      ai_queries: 0
+      ai_queries: 0,
+      contacts_created: 0
     };
 
+    // Ensure all fields exist (defensive programming for schema evolution)
+    currentUsage.docs_created = currentUsage.docs_created || 0;
+    currentUsage.hs_searches = currentUsage.hs_searches || 0;
+    currentUsage.ai_queries = currentUsage.ai_queries || 0;
+    currentUsage.contacts_created = currentUsage.contacts_created || 0;
+
     const limits = {
-      free: { docs_created: 5, hs_searches: 5, ai_queries: 5 },
-      pro: { docs_created: Infinity, hs_searches: Infinity, ai_queries: Infinity },
-      business: { docs_created: Infinity, hs_searches: Infinity, ai_queries: Infinity }
+      free: { docs_created: 5, hs_searches: 5, ai_queries: 5, contacts_created: 20 },
+      pro: { docs_created: Infinity, hs_searches: Infinity, ai_queries: Infinity, contacts_created: Infinity },
+      business: { docs_created: Infinity, hs_searches: Infinity, ai_queries: Infinity, contacts_created: Infinity }
     };
 
     const planLimits = limits[plan] || limits.free;
@@ -268,11 +275,15 @@ async function checkTierAndIncrement(userId, action) {
     if (action === 'ai_queries' && currentUsage.ai_queries >= planLimits.ai_queries) {
       return { allowed: false, feature: 'ai_queries', plan };
     }
+    if (action === 'contacts' && currentUsage.contacts_created >= planLimits.contacts_created) {
+      return { allowed: false, feature: 'contacts', plan };
+    }
 
     const updates = { ...currentUsage };
     if (action === 'docs') updates.docs_created += 1;
     if (action === 'hs_searches') updates.hs_searches += 1;
     if (action === 'ai_queries') updates.ai_queries += 1;
+    if (action === 'contacts') updates.contacts_created += 1;
 
     await supabase
       .from('usage_counters')
@@ -1085,6 +1096,18 @@ app.get('/api/contacts', authenticateUser, async (req, res) => {
 
 app.post('/api/contacts', authenticateUser, validateContact, async (req, res) => {
   try {
+    const tierCheck = await checkTierAndIncrement(req.user.id, 'contacts');
+    
+    if (!tierCheck.allowed) {
+      console.log(`[Contacts] Quota exceeded for user ${req.user.id}`);
+      return res.status(402).json({ 
+        error: 'quota_exceeded', 
+        feature: 'contacts',
+        plan: tierCheck.plan,
+        message: 'Contact limit reached. Please upgrade to Pro plan for unlimited contacts.'
+      });
+    }
+
     const { type, name, company, email, phone, address } = req.body;
     
     const { data, error } = await supabase
