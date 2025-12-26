@@ -19,7 +19,8 @@
     "autoprefixer": "^10.4.21",
     "body-parser": "^2.2.0",
     "cors": "^2.8.5",
-    "express": "^4.19.2",
+    "dotenv": "^17.2.3",
+    "express": "^4.22.1",
     "express-history-api-fallback": "^2.2.1",
     "framer-motion": "^12.23.22",
     "nodemailer": "^7.0.9",
@@ -30,6 +31,15 @@
     "recharts": "^3.2.1",
     "stripe": "^19.1.0",
     "tailwindcss": "^4.1.14",
+    "uuid": "^13.0.0",
     "xlsx": "^0.18.5"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rushu3202/export-agent-invoice.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rushu3202/export-agent-invoice/issues"
+  },
+  "homepage": "https://github.com/rushu3202/export-agent-invoice#readme"
 }

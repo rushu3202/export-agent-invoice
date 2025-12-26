@@ -1,569 +1,262 @@
-// index.js - Production entry point
 import express from "express";
-import PDFDocument from "pdfkit";
-import path from "path";
-import fs from "fs";
-import OpenAI from "openai";
-import { fileURLToPath } from "url";
+import { v4 as uuidv4 } from "uuid";
+import cors from "cors";
+import dotenv from "dotenv";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+dotenv.config();
 
 const app = express();
-app.use(express.json({ limit: "1mb" }));
-app.use(express.urlencoded({ extended: true }));
+const PORT = process.env.PORT || 5000;
+// ---- In-memory Reports Store (v1) ----
+const REPORTS = []; // (later replace with DB)
 
-// Serve static assets (logo, etc.)
-app.use("/public", express.static(path.join(__dirname, "public")));
+// Middleware
+app.use(cors());
+app.use(express.json());
 
-// Serve React production build files from /dist
-const distFolder = path.join(__dirname, "dist");
-if (fs.existsSync(distFolder)) {
-  app.use(express.static(distFolder));
-  console.log("✅ Serving frontend from /dist");
-} else {
-  console.log("⚠️  No /dist folder found - run build first");
+// Health check route
+app.get("/", (req, res) => {
+  res.json({ status: "Export Agent Backend is running ✅" });
+});
+
+app.post("/api/export/start", (req, res) => {
+  const { country, product } = req.body;
+
+  if (!country || !product) {
+    return res.status(400).json({
+      error: "country and product are required",
+    });
+  }
+
+  const journey = {
+    journeyId: uuidv4(),
+    country,
+    product,
+    currentStep: "EXPORT_BASICS",
+    createdAt: new Date(),
+    nextAction: "Check export eligibility",
+  };
+
+  console.log("🚀 New export journey started:", journey);
+
+  res.json({
+    message: "Export journey started successfully",
+    journey,
+  });
+});
+
+// Export readiness check (REAL LOGIC START)
+app.post("/api/export-check", (req, res) => {
+  const { product, country, experience } = req.body;
+
+  if (!product || !country || !experience) {
+    return res.status(400).json({
+      error: "Product, country, and experience are required",
+    });
+  }
+
+  let response = {
+    product,
+    country,
+    allowed: true,
+    documents: [],
+    warnings: [],
+    nextSteps: [],
+  };
+
+    // ---- Journey intelligence (v2) ----
+  let riskScore = 0;
+
+  if (experience === "beginner") riskScore += 30;
+
+  const restrictedKeywords = ["battery", "chemical", "medicine", "pharma", "liquid"];
+  const isPossiblyRestricted = restrictedKeywords.some((k) =>
+    product.toLowerCase().includes(k)
+  );
+  if (isPossiblyRestricted) riskScore += 40;
+
+  const risk_level =
+    riskScore >= 70 ? "HIGH" : riskScore >= 40 ? "MEDIUM" : "LOW";
+
+  const recommended_incoterm =
+    experience === "beginner" ? "DAP" : "FOB";
+
+  response.risk_level = risk_level;
+  response.recommended_incoterm = recommended_incoterm;
+
+  // guide the journey
+  response.journey_stage = "DOCS";
+  response.missing_info = [];
+
+  // BASIC EXPORT LOGIC (can expand later)
+  response.documents.push(
+    "Commercial Invoice",
+    "Packing List",
+    "Certificate of Origin"
+  );
+
+  // EU region aliases
+const euAliases = ["eu", "european union"];
+
+  // ---- Country Pack Logic (v3) ----
+const dest = country
+  .trim()
+  .toLowerCase()
+  .replace(/\./g, "")
+  .replace(/,/g, "")
+  .replace(/\s+/g, " ");
+
+const euCountries = [
+  "germany","france","italy","spain","netherlands","belgium","ireland","poland",
+  "sweden","denmark","finland","austria","portugal","czech republic","greece",
+  "hungary","romania","bulgaria","croatia","slovakia","slovenia","lithuania",
+  "latvia","estonia","luxembourg","malta","cyprus"
+];
+
+const uaeAliases = ["uae","united arab emirates","dubai"];
+const indiaAliases = ["india","bharat"];
+
+if (euCountries.includes(dest) || euAliases.includes(dest)) {
+  response.documents.push("EU Import VAT / IOSS (if applicable)");
+  response.warnings.push("EU shipments may require importer VAT/EORI on arrival");
+  response.nextSteps.unshift("Confirm EU importer details (VAT/EORI) with your buyer");
+  response.journey_stage = "EU_COMPLIANCE";
 }
 
-// OpenAI client (optional)
-let openai = null;
-if (process.env.OPENAI_API_KEY) {
-  openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  console.log("✅ OpenAI client configured");
-} else {
-  console.log("ℹ️  OpenAI API key not found - using fallback HS codes");
+if (uaeAliases.includes(dest)) {
+  response.documents.push("Certificate of Origin (Chamber attestation may be required)");
+  response.warnings.push("Some UAE shipments require attested Certificate of Origin");
+  response.nextSteps.unshift("Check if your buyer needs CoO attestation (Chamber)");
+  response.journey_stage = "MIDDLE_EAST_COMPLIANCE";
 }
 
-// Utility: currency symbol map
-const currencySymbols = {
-  USD: "$",
-  GBP: "£",
-  EUR: "€",
-  INR: "₹",
-  JPY: "¥",
+if (indiaAliases.includes(dest)) {
+  response.documents.push("IEC (Importer Exporter Code) — for importer side");
+  response.warnings.push("India customs clearance often needs importer IEC & detailed invoice data");
+  response.nextSteps.unshift("Ask buyer/importer for IEC and customs broker details");
+  response.journey_stage = "INDIA_COMPLIANCE";
+}
+
+  if (country.toLowerCase() === "uk") {
+    response.documents.push("EORI Number");
+  }
+
+  if (experience === "beginner") {
+    response.warnings.push(
+      "Hire a freight forwarder",
+      "Avoid CIF pricing initially"
+    );
+  }
+
+  response.nextSteps.push(
+    "Register with customs",
+    "Confirm HS code",
+    "Talk to logistics partner"
+  );
+
+  // ---- HS Code Assistant (v1: rule-based) ----
+const p = product.trim().toLowerCase();
+
+const hsSuggestions = [];
+
+const addHS = (code, description, confidence) => {
+  hsSuggestions.push({ code, description, confidence });
 };
 
-// Generate invoice number
-function generateInvoiceNumber() {
-  const now = new Date();
-  return (
-    "INV-" +
-    now.getFullYear().toString() +
-    (now.getMonth() + 1).toString().padStart(2, "0") +
-    now.getDate().toString().padStart(2, "0") +
-    "-" +
-    Math.floor(1000 + Math.random() * 9000)
-  );
+// clothing examples
+if (p.includes("t-shirt") || p.includes("tshirt") || p.includes("tee")) {
+  addHS("6109", "T-shirts, singlets and other vests (knitted or crocheted)", "HIGH");
+}
+if (p.includes("shirt") && !p.includes("t-shirt") && !p.includes("tshirt")) {
+  addHS("6205", "Men’s or boys’ shirts (not knitted)", "MEDIUM");
 }
 
-// Safe HS-code fetch (tries OpenAI if available, else returns fallback)
-async function getHSCode(description) {
-  if (!openai) return "000000";
-  try {
-    const prompt = `Provide the best matching 6-digit HS (Harmonized System) code for the product: "${description}". Output only the 6 digits.`;
-    const resp = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: 20,
-    });
-    const text = (resp?.choices?.[0]?.message?.content || "").trim();
-    const match = text.match(/\d{6}/);
-    return match ? match[0] : text.slice(0, 6).padEnd(6, "0");
-  } catch (err) {
-    console.error("OpenAI HS code error:", err?.message || err);
-    return "000000";
-  }
+// food examples
+if (p.includes("rice")) addHS("1006", "Rice", "HIGH");
+if (p.includes("spice") || p.includes("masala")) addHS("0910", "Spices (mixed/various)", "MEDIUM");
+
+// electronics / sensitive hints
+if (p.includes("battery") || p.includes("lithium")) {
+  addHS("8507", "Electric accumulators (batteries)", "MEDIUM");
+  response.warnings.push("Battery shipments may require dangerous goods (DG) checks and special packaging.");
+  response.journey_stage = response.journey_stage || "RESTRICTIONS";
 }
 
-// Health check endpoint for deployment
-app.get("/health", (req, res) => {
-  res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+// Default message if nothing matched
+if (hsSuggestions.length === 0) {
+  response.hs_note =
+    "No direct HS match found. Add more details (material, use, composition) for better suggestion.";
+} else {
+  response.hs_note =
+    "HS code suggestions are guidance only. Confirm final HS code with a customs broker or official tariff tool.";
+}
+
+response.hs_code_suggestions = hsSuggestions;
+  res.json(response);
 });
+// ------------------- Reports API (v1) -------------------
 
-// POST /analyze-invoice - AI-powered HS code and duty intelligence
-app.post("/analyze-invoice", async (req, res) => {
-  try {
-    const { items, origin, destination } = req.body;
-    
-    if (!items || !Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ error: "Items array is required" });
-    }
+// Save a report
+app.post("/api/reports", (req, res) => {
+  const { product, country, experience, result, lockedHs } = req.body;
 
-    const analyzedItems = [];
-
-    if (!openai) {
-      // Fallback to mock data when OpenAI is not available
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i];
-        analyzedItems.push({
-          description: item.description || `Item ${i + 1}`,
-          hsCode: "000000",
-          estimatedDuty: "5-10%",
-          category: "General Goods",
-          notes: "HS code and duty estimates require AI configuration"
-        });
-      }
-
-      return res.json({
-        analyzedItems,
-        summary: "AI analysis unavailable. Using fallback HS codes. Please configure OPENAI_API_KEY for accurate analysis.",
-        totalEstimatedDuty: "Variable",
-        freightEstimate: "Contact carrier",
-        insuranceEstimate: "0.5% of invoice value"
-      });
-    }
-
-    // Use AI to analyze each item
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      const description = item.description || `Item ${i + 1}`;
-
-      try {
-        const prompt = `Analyze this export item and provide:
-1. 6-digit HS code
-2. Estimated import duty percentage
-3. Product category
-
-Item: "${description}"
-Origin: ${origin || 'India'}
-Destination: ${destination || 'USA'}
-
-Format: HS_CODE | DUTY_% | CATEGORY`;
-
-        const completion = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
-          messages: [
-            {
-              role: "system",
-              content: "You are an expert in international trade and HS code classification. Provide accurate HS codes and duty estimates for export items."
-            },
-            { role: "user", content: prompt }
-          ],
-          max_tokens: 100,
-        });
-
-        const response = completion.choices[0].message.content.trim();
-        const parts = response.split('|').map(p => p.trim());
-
-        analyzedItems.push({
-          description,
-          hsCode: parts[0] || "000000",
-          estimatedDuty: parts[1] || "5-10%",
-          category: parts[2] || "General Goods",
-          notes: "AI-generated estimate"
-        });
-      } catch (err) {
-        console.error(`Error analyzing item ${i}:`, err);
-        analyzedItems.push({
-          description,
-          hsCode: "000000",
-          estimatedDuty: "5-10%",
-          category: "General Goods",
-          notes: "Analysis failed"
-        });
-      }
-    }
-
-    // Generate export declaration summary
-    const summaryPrompt = `Generate a brief export declaration summary for shipment from ${origin || 'India'} to ${destination || 'USA'} containing ${items.length} items. Include key compliance notes.`;
-
-    let summary = "Standard export declaration applies. Ensure all documentation is complete.";
-    try {
-      const summaryCompletion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: "You are an export compliance expert. Provide concise export declaration summaries."
-          },
-          { role: "user", content: summaryPrompt }
-        ],
-        max_tokens: 150,
-      });
-      summary = summaryCompletion.choices[0].message.content.trim();
-    } catch (err) {
-      console.error("Error generating summary:", err);
-    }
-
-    res.json({
-      analyzedItems,
-      summary,
-      totalEstimatedDuty: "5-15% (varies by item)",
-      freightEstimate: "Contact carrier for quote",
-      insuranceEstimate: "0.5-1% of invoice value"
+  if (!product || !country || !experience || !result || !lockedHs) {
+    return res.status(400).json({
+      error: "product, country, experience, result, and lockedHs are required",
     });
-  } catch (err) {
-    console.error("Analyze invoice error:", err);
-    res.status(500).json({ error: "Failed to analyze invoice" });
   }
+
+  const report = {
+    id: uuidv4(),
+    createdAt: new Date().toISOString(),
+    product,
+    country,
+    experience,
+    risk_level: result.risk_level,
+    recommended_incoterm: result.recommended_incoterm,
+    journey_stage: result.journey_stage,
+    lockedHs,
+    documents: result.documents || [],
+    warnings: result.warnings || [],
+    nextSteps: result.nextSteps || [],
+  };
+
+  REPORTS.unshift(report); // newest first
+
+  res.json({
+    message: "Report saved ✅",
+    reportId: report.id,
+    report,
+  });
 });
 
-// POST /generate-invoice
-app.post("/generate-invoice", async (req, res) => {
-  try {
-    const payload = req.body || {};
-    let { sellerName, buyerName, items, currency } = payload;
-
-    currency = (currency || "USD").toString().toUpperCase();
-    const symbol = currencySymbols[currency] || currency + " ";
-
-    // items must be array
-    if (typeof items === "string") {
-      try {
-        items = JSON.parse(items);
-      } catch {
-        items = [];
-      }
-    }
-    items = Array.isArray(items) ? items : [];
-
-    // ensure required fields
-    sellerName = sellerName || "Seller";
-    buyerName = buyerName || "Buyer";
-
-    // enrich with HS codes (sequential to avoid parallel throttling)
-    for (let i = 0; i < items.length; i++) {
-      const it = items[i];
-      if (!it) continue;
-      if (!it.description) it.description = "Item " + (i + 1);
-      if (!it.hsCode || it.hsCode === "N/A") {
-        it.hsCode = await getHSCode(it.description);
-      }
-    }
-
-    // Create PDF
-    const doc = new PDFDocument({ margin: 50, size: "A4" });
-
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename=invoice-${generateInvoiceNumber()}.pdf`
-    );
-
-    doc.pipe(res);
-
-    // Header: logo + title + invoice meta
-    const logoPath = path.join(__dirname, "public", "logo.png");
-    if (fs.existsSync(logoPath)) {
-      try {
-        doc.image(logoPath, 50, 30, { width: 110 });
-      } catch (err) {
-        console.warn("Logo render failed:", err?.message || err);
-      }
-    }
-    doc.fontSize(20).text("COMMERCIAL INVOICE", { align: "center" });
-
-    const invoiceNo = generateInvoiceNumber();
-    const invoiceDate = new Date().toLocaleDateString("en-GB");
-    doc.fontSize(10).text(`Invoice No: ${invoiceNo}`, 420, 50, { align: "left" });
-    doc.text(`Date: ${invoiceDate}`, 420, 65, { align: "left" });
-
-    doc.moveDown(3);
-
-    // Seller & Buyer blocks
-    doc.fontSize(11).fillColor("black");
-    const leftX = 50;
-    const midX = 300;
-    doc.text("Seller:", leftX, doc.y);
-    doc.font("Helvetica-Bold").text(sellerName);
-    doc.font("Helvetica").moveDown(0.5);
-    doc.text("Buyer:", midX, doc.y - 28);
-    doc.font("Helvetica-Bold").text(buyerName);
-    doc.moveDown();
-
-    // Table header
-    const tableTop = doc.y + 10;
-    doc.fontSize(11).font("Helvetica-Bold");
-    doc.text("No", 50, tableTop);
-    doc.text("Description", 90, tableTop);
-    doc.text("Qty", 330, tableTop, { width: 40, align: "right" });
-    doc.text("Unit", 380, tableTop, { width: 70, align: "right" });
-    doc.text("Line Total", 455, tableTop, { width: 80, align: "right" });
-    doc.text("HS Code", 540, tableTop, { width: 70, align: "right" });
-
-    doc.moveTo(50, tableTop + 15).lineTo(560, tableTop + 15).stroke();
-
-    // Items rows
-    doc.font("Helvetica").fontSize(10);
-    let position = tableTop + 25;
-    let grandTotal = 0;
-    for (let i = 0; i < items.length; i++) {
-      const it = items[i];
-      const qty = Number(it.qty || 0);
-      const unit = Number(it.unitPrice || 0);
-      const lineTotal = qty * unit;
-      grandTotal += lineTotal;
-
-      doc.text(String(i + 1), 50, position);
-      doc.text(it.description, 90, position, { width: 230 });
-      doc.text(qty.toString(), 330, position, { width: 40, align: "right" });
-      doc.text(symbol + unit.toFixed(2), 380, position, { width: 70, align: "right" });
-      doc.text(symbol + lineTotal.toFixed(2), 455, position, { width: 80, align: "right" });
-      doc.text(String(it.hsCode || "N/A"), 540, position, { width: 70, align: "right" });
-
-      position += 20;
-      if (position > 720) {
-        doc.addPage();
-        position = 50;
-      }
-    }
-
-    // Totals
-    doc.moveTo(350, position + 5).lineTo(560, position + 5).stroke();
-    doc.fontSize(12).font("Helvetica-Bold").text(`Grand Total: ${symbol}${grandTotal.toFixed(2)}`, 350, position + 15, { align: "right" });
-
-    // Signature & stamp placeholders
-    doc.moveDown(6);
-    const sigY = doc.y + 20;
-    doc.fontSize(11).font("Helvetica").text("Authorized Signature:", 50, sigY + 20);
-    doc.moveTo(180, sigY + 40).lineTo(350, sigY + 40).stroke();
-
-    doc.rect(400, sigY + 10, 120, 80).stroke();
-    doc.fontSize(10).text("Company Stamp", 410, sigY + 50);
-
-    // Footer
-    doc.moveDown(6);
-    doc.fontSize(9).fillColor("gray").text("Generated by Export AI Agent", { align: "center" });
-
-    doc.end();
-  } catch (err) {
-    console.error("Generate invoice error:", err);
-    if (!res.headersSent) {
-      res.status(500).json({ error: "Failed to generate invoice" });
-    }
-  }
+// List reports (latest first)
+app.get("/api/reports", (req, res) => {
+  res.json({
+    count: REPORTS.length,
+    reports: REPORTS.map((r) => ({
+      id: r.id,
+      createdAt: r.createdAt,
+      product: r.product,
+      country: r.country,
+      risk_level: r.risk_level,
+      hs: r.lockedHs?.code,
+    })),
+  });
 });
 
-// AI Chat Assistant endpoint with conversation memory
-app.post("/chat", async (req, res) => {
-  try {
-    const { message, history } = req.body;
-    
-    if (!message) {
-      return res.status(400).json({ error: "Message is required" });
-    }
+// Get a single report by ID
+app.get("/api/reports/:id", (req, res) => {
+  const report = REPORTS.find((r) => r.id === req.params.id);
 
-    if (!openai) {
-      return res.json({
-        response: "Hello! I'm your Export AI Assistant. I'm currently running in offline mode, but I can still help with basic information:\n\n• HS codes classify products for international trade\n• Common export documents include: Commercial Invoice, Packing List, Bill of Lading, Certificate of Origin\n• Always check destination country's import regulations\n• Incoterms define responsibilities between buyer and seller\n\nWhat would you like to know?"
-      });
-    }
-
-    // Build conversation messages with history
-    const messages = [
-      {
-        role: "system",
-        content: "You are an expert export advisor helping businesses with international trade. Provide clear, accurate information about export procedures, documentation, compliance, HS codes, customs, and shipping. Be professional yet friendly. Use short, clear sentences. Answer questions concisely and helpfully."
-      }
-    ];
-
-    // Add conversation history (last 5 exchanges to stay within token limits)
-    if (Array.isArray(history) && history.length > 0) {
-      const recentHistory = history.slice(-10); // Last 10 messages
-      messages.push(...recentHistory);
-    }
-
-    // Add current user message
-    messages.push({ role: "user", content: message });
-
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: messages,
-      max_tokens: 500,
-    });
-
-    res.json({ response: completion.choices[0].message.content });
-  } catch (err) {
-    console.error("AI chat error:", err);
-    res.status(500).json({ error: "Failed to get AI response" });
+  if (!report) {
+    return res.status(404).json({ error: "Report not found" });
   }
+
+  res.json(report);
 });
 
-// Export Forms Assistant endpoint - AI generates or fills export forms
-app.post("/export-forms", async (req, res) => {
-  try {
-    const { formType, formData, action } = req.body;
-    
-    if (!formType) {
-      return res.status(400).json({ error: "Form type is required" });
-    }
-
-    // If action is 'generate', create PDF
-    if (action === 'generate' && formData) {
-      const doc = new PDFDocument({ margin: 50, size: "A4" });
-
-      const formTitles = {
-        shipping_bill: "SHIPPING BILL",
-        bill_of_lading: "BILL OF LADING",
-        packing_list: "PACKING LIST",
-        certificate_of_origin: "CERTIFICATE OF ORIGIN"
-      };
-
-      res.setHeader("Content-Type", "application/pdf");
-      res.setHeader(
-        "Content-Disposition",
-        `attachment; filename=${formType}-${Date.now()}.pdf`
-      );
-
-      doc.pipe(res);
-
-      doc.fontSize(20).text(formTitles[formType] || "EXPORT FORM", { align: "center" });
-      doc.moveDown(2);
-
-      doc.fontSize(12);
-      Object.entries(formData).forEach(([key, value]) => {
-        const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-        doc.font("Helvetica-Bold").text(`${label}:`, { continued: false });
-        doc.font("Helvetica").text(value || "N/A");
-        doc.moveDown(0.5);
-      });
-
-      doc.moveDown(2);
-      doc.fontSize(10).fillColor("gray").text(`Powered by Export AI Agent`, { align: "center" });
-
-      doc.end();
-      return;
-    }
-
-    // Otherwise, provide AI assistance for filling the form
-    if (!openai) {
-      return res.json({
-        suggestion: "AI form assistance is currently offline. Please fill out the form manually. Common tips:\n\n• Ensure all company names match official registration\n• HS codes must be accurate for customs clearance\n• Verify consignee details with your buyer\n• Double-check weight and packaging information",
-        filledData: formData || {}
-      });
-    }
-
-    const formContext = {
-      shipping_bill: "a Shipping Bill for customs clearance in exports",
-      bill_of_lading: "a Bill of Lading document for cargo shipment",
-      packing_list: "a Packing List detailing goods being shipped",
-      certificate_of_origin: "a Certificate of Origin proving goods' manufacturing country"
-    };
-
-    const prompt = `Help fill out ${formContext[formType] || 'an export form'}. Current data: ${JSON.stringify(formData || {})}. Provide helpful guidance for completing remaining fields accurately. Be concise and practical.`;
-
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: "You are an export documentation expert. Help users fill out export forms correctly by providing guidance, suggestions, and best practices. Be concise and friendly."
-        },
-        { role: "user", content: prompt }
-      ],
-      max_tokens: 300,
-    });
-
-    res.json({ 
-      suggestion: completion.choices[0].message.content,
-      filledData: formData || {}
-    });
-  } catch (err) {
-    console.error("Export forms error:", err);
-    if (!res.headersSent) {
-      res.status(500).json({ error: "Failed to process export form" });
-    }
-  }
-});
-
-// Shipment Tracking endpoint - AI-generated mock tracking updates
-app.post("/track", async (req, res) => {
-  try {
-    const { trackingNumber } = req.body;
-    
-    if (!trackingNumber) {
-      return res.status(400).json({ error: "Tracking number is required" });
-    }
-
-    if (!openai) {
-      // Fallback mock response
-      const mockStatuses = [
-        "Shipment received at origin facility",
-        "Departed from Mumbai port – ETA 7 days",
-        "In transit via sea freight",
-        "Arrived at destination port",
-        "Customs clearance in progress"
-      ];
-      const randomStatus = mockStatuses[Math.floor(Math.random() * mockStatuses.length)];
-      
-      return res.json({
-        trackingNumber,
-        status: randomStatus,
-        location: "Mumbai, India",
-        estimatedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString(),
-        updates: [
-          { date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toLocaleDateString(), event: "Shipment received at warehouse" },
-          { date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toLocaleDateString(), event: "Loaded onto vessel" },
-          { date: new Date().toLocaleDateString(), event: randomStatus }
-        ]
-      });
-    }
-
-    // Use AI to generate realistic tracking updates
-    const prompt = `Generate a realistic shipment tracking update for tracking number ${trackingNumber}. Include current status, location, and estimated delivery. Format as: Status | Location | ETA`;
-
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: "You are a shipment tracking system. Generate realistic shipping updates for international cargo. Be concise and professional."
-        },
-        { role: "user", content: prompt }
-      ],
-      max_tokens: 150,
-    });
-
-    const response = completion.choices[0].message.content;
-    const parts = response.split('|').map(p => p.trim());
-
-    res.json({
-      trackingNumber,
-      status: parts[0] || "In transit",
-      location: parts[1] || "International waters",
-      estimatedDelivery: parts[2] || "7-10 business days",
-      updates: [
-        { date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toLocaleDateString(), event: "Shipment picked up from shipper" },
-        { date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toLocaleDateString(), event: "Arrived at origin port" },
-        { date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toLocaleDateString(), event: "Departed from origin – sea freight" },
-        { date: new Date().toLocaleDateString(), event: parts[0] || "Shipment in transit" }
-      ],
-      message: response
-    });
-  } catch (err) {
-    console.error("Tracking error:", err);
-    res.status(500).json({ error: "Failed to track shipment" });
-  }
-});
-
-// SPA fallback - serve React app for all non-API routes using middleware
-app.use((req, res, next) => {
-  if (req.method === 'GET' && !req.path.startsWith('/api') && !req.path.includes('.')) {
-    const indexPath = path.join(distFolder, "index.html");
-    if (fs.existsSync(indexPath)) {
-      res.sendFile(indexPath);
-    } else {
-      res.status(200).send(`
-        <html>
-          <head><title>Export AI Agent</title></head>
-          <body style="font-family: Arial; padding: 40px; text-align: center;">
-            <h1>Export AI Agent Backend</h1>
-            <p>Server is running successfully!</p>
-            <p>Build your frontend with: <code>cd my-app && npm run build</code></p>
-            <p>Then copy files to /dist folder</p>
-          </body>
-        </html>
-      `);
-    }
-  } else {
-    next();
-  }
-});
-
-// Start server on port 5000 (maps to external port 80 in deployment)
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📁 Serving from: ${__dirname}`);
-  console.log(`🎯 Frontend dist: ${fs.existsSync(distFolder) ? "Found" : "Not found"}`);
+// Start server
+app.listen(PORT, () => {
+  console.log(`🚀 Backend running on http://localhost:${PORT}`);
 });
